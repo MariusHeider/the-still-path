@@ -63,8 +63,15 @@ var is_still := false
 
 var _coyote_left := 0.0
 var _buffer_left := 0.0
+## Name of a one-shot animation currently blocking the state animations.
+var _transition := ""
 
 @onready var _sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
+
+
+func _ready() -> void:
+	if _sprite != null:
+		_sprite.animation_finished.connect(_on_sprite_animation_finished)
 
 
 func _physics_process(delta: float) -> void:
@@ -120,6 +127,10 @@ func _set_seated(seated: bool) -> void:
 	if is_seated == seated:
 		return
 	is_seated = seated
+	if seated:
+		_play_transition("sit_down")
+	else:
+		_transition = ""
 	if not seated:
 		seconds_still = 0.0
 		stillness_changed.emit(0.0)
@@ -186,17 +197,44 @@ func _update_animation(dir: float) -> void:
 		return
 	_sprite.flip_h = facing < 0
 
+	# A one-shot transition (lowering into the kneel) plays to the end before
+	# anything else takes over.
+	if _transition != "":
+		return
+
 	var next := "idle"
 	if is_seated:
 		next = "sit"
 	elif not is_on_floor():
 		next = "jump" if velocity.y < 0.0 else "fall"
 	elif absf(velocity.x) > 5.0:
-		next = "run"
+		next = "walk"
 
-	# Fall back to whatever the sheet actually has, so a missing animation never
-	# crashes the game mid-demo.
-	if _sprite.sprite_frames == null or not _sprite.sprite_frames.has_animation(next):
+	_play(next)
+
+
+## Plays an animation if the sheet actually has it, so a sheet missing one never
+## crashes the game mid-demo.
+func _play(name: String) -> void:
+	if _sprite == null or _sprite.sprite_frames == null:
 		return
-	if _sprite.animation != next:
-		_sprite.play(next)
+	if not _sprite.sprite_frames.has_animation(name):
+		return
+	if _sprite.animation != name:
+		_sprite.play(name)
+
+
+## Plays a one-shot animation that blocks the normal state animations until it
+## finishes. Used for sitting down, where cutting straight to the held pose
+## loses the whole movement.
+func _play_transition(name: String) -> void:
+	if _sprite == null or _sprite.sprite_frames == null:
+		return
+	if not _sprite.sprite_frames.has_animation(name):
+		return
+	_transition = name
+	_sprite.play(name)
+
+
+func _on_sprite_animation_finished() -> void:
+	_transition = ""

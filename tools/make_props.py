@@ -31,6 +31,11 @@ VINE_OUTLINE = (40, 46, 22)
 CANOPY = [(146, 158, 92), (116, 130, 70), (88, 102, 54), (62, 74, 40)]
 BARK = [(142, 120, 94), (110, 90, 70), (78, 64, 50), (50, 41, 32)]
 
+# The one place saturated colour is allowed: the flower is the reward at the top
+# of the vine, and it should read instantly as somewhere to land.
+PETAL = [(252, 230, 234), (240, 200, 210), (212, 156, 174), (166, 112, 132)]
+CORE = [(248, 216, 132), (214, 172, 84), (168, 128, 58)]
+
 CLEAR = (0, 0, 0, 0)
 
 
@@ -106,6 +111,71 @@ def make_seed():
 				px[y][x] = BUD[0] if dy < -0.2 else BUD[1]
 			elif d <= 1.35:
 				px[y][x] = VINE_OUTLINE
+	return px
+
+
+def petal(px, bx, by, length, width, angle_deg, shades, outline):
+	"""One petal, rooted at (bx, by) and radiating outward, widest mid-way."""
+	a = math.radians(angle_deg)
+	ca, sa = math.cos(a), math.sin(a)
+	for t in range(0, length + 1):
+		half = width * math.sin(math.pi * (t / float(length)) ** 0.85)
+		if half < 0.5:
+			continue
+		for w in range(-int(half), int(half) + 1):
+			x = int(round(bx + t * ca - w * sa))
+			y = int(round(by + t * sa + w * ca))
+			if abs(w) >= half - 1.0:
+				put(px, x, y, outline)
+			else:
+				# Lighter toward the tip, so the petals read as curling open.
+				put(px, x, y, shades[0] if t > length * 0.62 else shades[1])
+
+
+def make_flower():
+	"""The platform at the top of the vine. Wide, flat-topped, hard to miss."""
+	w, h = 48, 28
+	px = blank(w, h)
+	base_x, base_y = w // 2, 20
+
+	# Back row, darker, spread wide to make the silhouette broad.
+	for angle in (-172, -146, -120, -92, -64, -38, -12):
+		petal(px, base_x, base_y, 19, 4.6, angle, [PETAL[1], PETAL[2]], PETAL[3])
+	# Front row, lighter, shorter, filling the middle.
+	for angle in (-158, -128, -98, -68, -38):
+		petal(px, base_x, base_y - 2, 14, 4.0, angle, [PETAL[0], PETAL[1]], PETAL[3])
+
+	# Seed cup.
+	for y in range(h):
+		for x in range(w):
+			dx, dy = (x - base_x) / 6.0, (y - (base_y - 5)) / 3.6
+			d = dx * dx + dy * dy
+			if d <= 1.0:
+				px[y][x] = CORE[0] if dy < -0.15 else CORE[1]
+			elif d <= 1.4:
+				px[y][x] = CORE[2]
+	return px
+
+
+def make_sapling():
+	"""What you actually sit beside. A seed would be under the soil."""
+	w, h = 20, 18
+	px = blank(w, h)
+	cx = w // 2
+	for y in range(6, h):
+		put(px, cx, y, STEM[1])
+		put(px, cx - 1, y, STEM[2])
+	for side, cy, size in ((1, 10, 4), (-1, 13, 3), (1, 15, 2)):
+		for t in range(size * 2 + 1):
+			half = max(1, int(size * math.sin(math.pi * (t / float(size * 2 + 1)))))
+			for k in range(-half, half + 1):
+				x = cx + side * t
+				y = cy + k // 2 - t // 3
+				put(px, x, y, LEAF[0] if k < 0 else LEAF[1])
+	# Two seed leaves at the crown so it reads as young growth.
+	for dx in (-2, -1, 0, 1, 2):
+		put(px, cx + dx, 5, LEAF[0])
+		put(px, cx + dx, 6, LEAF[1])
 	return px
 
 
@@ -223,7 +293,8 @@ def make_tree(rng, width, height, style):
 def main() -> None:
 	rng = random.Random(SEED)
 	save(make_vine(rng), "Assets/Props/vine.png")
-	save(make_seed(), "Assets/Props/seed.png")
+	save(make_sapling(), "Assets/Props/sapling.png")
+	save(make_flower(), "Assets/Props/flower.png")
 	save(make_tree(rng, 96, 112, "banyan"), "Assets/Props/tree_banyan.png")
 	save(make_tree(rng, 56, 96, "slim"), "Assets/Props/tree_slim.png")
 	save(make_tree(rng, 72, 80, "slim"), "Assets/Props/tree_small.png")

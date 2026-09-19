@@ -61,9 +61,9 @@ func _physics_process(_delta: float) -> bool:
 		_press("interact")
 	elif _step == 302:
 		_release("interact")
-		_check(_player.is_seated, "seeker should be seated beside the seed")
+		_check(_player.is_seated, "seeker should be seated beside the sapling")
 	elif _step == 560:
-		_check(_plant.is_done, "seed should have grown")
+		_check(_plant.is_done, "sapling should have grown into a vine")
 		var shape: CollisionShape2D = _plant.get_node("Platform/CollisionShape2D")
 		_check(not shape.disabled, "vine platform collider should be enabled")
 		_check(_plant.get_node("Platform").position.y < -80.0,
