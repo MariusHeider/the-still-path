@@ -1,0 +1,27 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://Scripts/focus_stone.gd" id="1_stone"]
+[ext_resource type="Texture2D" path="res://Assets/Tileset/tileset_generated.png" id="2_sheet"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_slab"]
+size = Vector2(160, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_block"]
+atlas = ExtResource("2_sheet")
+region = Rect2(0, 64, 32, 32)
+
+[node name="FocusStone" type="Node2D"]
+script = ExtResource("1_stone")
+
+[node name="Body" type="AnimatableBody2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Body"]
+shape = SubResource("RectangleShape2D_slab")
+
+[node name="Visual" type="TextureRect" parent="Body"]
+offset_left = -80.0
+offset_top = -16.0
+offset_right = 80.0
+offset_bottom = 16.0
+texture = SubResource("AtlasTexture_block")
+stretch_mode = 1

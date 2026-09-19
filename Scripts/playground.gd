@@ -1,60 +1,77 @@
 extends Node2D
-## Throwaway room for tuning how the seeker moves. Geometry is built in code so
-## there is nothing to maintain here -- once the tileset lands, the real level
-## uses a TileMapLayer and this scene gets deleted.
+## Test room for the sit-and-focus mechanic. Terrain is painted from a list of
+## rectangles at startup rather than placed by hand, so the layout can be
+## rearranged by editing numbers while the real level is still being designed.
+##
+## Two puzzles, both using the same verb:
+##   the slab   -- sit beside it and it slides across the gap
+##   the seed   -- sit beside it and it grows into a vine you can stand on
 
-## Each entry is (x, y, width, height) with y being the TOP of the block.
-const BLOCKS: Array[Rect2] = [
-	Rect2(-320, 320, 1600, 80),  # ground
-	Rect2(200, 272, 96, 16),     # low ledge
-	Rect2(368, 216, 96, 16),     # needs the low ledge first
-	Rect2(544, 272, 128, 16),
-	Rect2(736, 160, 32, 160),    # pillar to test wall collisions
-	Rect2(832, 200, 160, 16),
-	Rect2(1040, 272, 120, 16),
+const TERRAIN_SET := 0
+const EARTH := 0
+const METER_WIDTH := 16
+
+## Solid ground in TILE coordinates: Rect2i(x, y, width, height).
+## Ground surface is row 10, which is y = 320 in world pixels.
+const SOLID: Array[Rect2i] = [
+	Rect2i(-10, 10, 32, 5),   # left ground, ends at the gap
+	Rect2i(27, 10, 19, 5),    # right ground, resumes after the gap
+	Rect2i(6, 8, 4, 1),       # low ledge
+	Rect2i(11, 6, 3, 1),      # higher ledge, needs the low one first
+	Rect2i(32, 6, 5, 1),      # only reachable from the grown vine
 ]
-const BLOCK_COLOR := Color("3a3630")
-const METER_WIDTH := 14
 
+@onready var _terrain: TileMapLayer = $Terrain
 @onready var _player: Seeker = $Player
+@onready var _focus: FocusSystem = $Player/FocusSystem
 @onready var _readout: Label = $HUD/Readout
 
 
 func _ready() -> void:
-	for block in BLOCKS:
-		_add_block(block)
-	_player.stillness_changed.connect(_on_stillness_changed)
-	_player.became_still.connect(_on_became_still)
-	_on_stillness_changed(0.0)
+	_paint_terrain()
+	_player.seated_changed.connect(_on_seated_changed)
+	_focus.target_changed.connect(_on_target_changed)
+	_focus.progress_changed.connect(_on_progress_changed)
+	_refresh()
 
 
-func _add_block(rect: Rect2) -> void:
-	var body := StaticBody2D.new()
-	body.position = rect.position
-
-	var shape := RectangleShape2D.new()
-	shape.size = rect.size
-	var collider := CollisionShape2D.new()
-	collider.shape = shape
-	collider.position = rect.size * 0.5
-	body.add_child(collider)
-
-	var visual := ColorRect.new()
-	visual.size = rect.size
-	visual.color = BLOCK_COLOR
-	visual.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	body.add_child(visual)
-
-	$Geometry.add_child(body)
+func _paint_terrain() -> void:
+	var cells: Array[Vector2i] = []
+	for rect in SOLID:
+		for y in range(rect.position.y, rect.end.y):
+			for x in range(rect.position.x, rect.end.x):
+				cells.append(Vector2i(x, y))
+	# Picks the right edge tile for every cell from the neighbours it ends up
+	# with, so the rectangles above never have to think about edges.
+	_terrain.set_cells_terrain_connect(cells, TERRAIN_SET, EARTH)
 
 
-func _on_stillness_changed(seconds: float) -> void:
-	var fraction := clampf(seconds / maxf(_player.stillness_threshold, 0.001), 0.0, 1.0)
-	var filled := int(fraction * METER_WIDTH)
-	_readout.text = "be still  [%s%s]" % [
+# --- Readout ----------------------------------------------------------------
+# Placeholder HUD. It exists so the mechanic can be felt and demonstrated; the
+# real game should say this with animation and sound, not a line of text.
+
+func _on_seated_changed(_seated: bool) -> void:
+	_refresh()
+
+
+func _on_target_changed(_target: Focusable) -> void:
+	_refresh()
+
+
+func _on_progress_changed(ratio: float) -> void:
+	if _focus.target == null:
+		_refresh()
+		return
+	var filled := int(ratio * METER_WIDTH)
+	_readout.text = "attending  [%s%s]" % [
 		"=".repeat(filled), " ".repeat(METER_WIDTH - filled)
 	]
 
 
-func _on_became_still() -> void:
-	_readout.text = "be still  [ the path answers ]"
+func _refresh() -> void:
+	if not _player.is_seated:
+		_readout.text = "E to sit"
+	elif _focus.target == null:
+		_readout.text = "still. nothing within reach"
+	else:
+		_on_progress_changed(0.0)

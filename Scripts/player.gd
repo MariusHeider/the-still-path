@@ -1,18 +1,25 @@
 extends CharacterBody2D
 class_name Seeker
-## The seeker. The node's origin sits at the feet, so you can drop it straight
+## The seeker. The origin sits at the feet, so you can drop the node straight
 ## onto a floor tile and it lines up without fiddling with offsets.
 ##
-## Movement is tuned in units you can actually picture: how many pixels high the
-## jump is, how many seconds to reach the top. Gravity is derived from those, so
-## you never have to guess at a gravity number to get the feel you want.
+## Movement is tuned in units you can picture: how many pixels high the jump is,
+## how many seconds to reach the top. Gravity is derived from those, so you
+## never have to guess at a gravity number to get the feel you want.
+##
+## The seeker has two states. Walking, and seated. Sitting is a deliberate press
+## rather than an absence of input -- the player should always know they did
+## something -- and while seated he cannot move at all. Everything the seeker
+## can affect in the world happens from that seated stillness; see
+## focus_system.gd.
 
-## Emitted every frame the player is holding still, with the running total.
+## Emitted every frame while seated, with the running total held.
 signal stillness_changed(seconds_still: float)
-## Emitted once when the player has been still long enough for the world to notice.
+## Emitted once the seeker has been still long enough for the world to notice.
 signal became_still()
-## Emitted when the player moves again after having been still.
+## Emitted when the stillness ends, whether by standing or by falling.
 signal stopped_being_still()
+signal seated_changed(seated: bool)
 
 @export_group("Run")
 ## Top running speed in pixels per second (~4.7 tiles of 32px per second).
@@ -42,11 +49,15 @@ signal stopped_being_still()
 @export var jump_buffer_time := 0.12
 
 @export_group("Stillness")
-## How long the player must hold completely still before the world responds.
-@export var stillness_threshold := 1.5
+## How long seated before the world starts responding. The focus system has its
+## own per-object timing on top of this; this is just the settling-in moment.
+@export var stillness_threshold := 0.35
+## Below this speed, the seeker is considered steady enough to sit down.
+@export var sit_max_speed := 20.0
 
 ## 1 = facing right, -1 = facing left.
 var facing := 1
+var is_seated := false
 var seconds_still := 0.0
 var is_still := false
 
@@ -59,19 +70,63 @@ var _buffer_left := 0.0
 func _physics_process(delta: float) -> void:
 	var input_dir := Input.get_axis("move_left", "move_right")
 	var jump_pressed := Input.is_action_just_pressed("jump")
-	var jump_released := Input.is_action_just_released("jump")
-	var any_input := not is_zero_approx(input_dir) or Input.is_action_pressed("jump")
+	var sit_pressed := Input.is_action_just_pressed("interact")
 
-	_tick_stillness(delta, any_input)
-	_tick_timers(delta, jump_pressed)
-	_apply_gravity(delta)
-	_apply_horizontal(delta, input_dir)
-	_try_jump()
-	if jump_released and velocity.y < 0.0:
-		velocity.y *= jump_cut_factor
+	if is_seated:
+		_process_seated(delta, input_dir, jump_pressed, sit_pressed)
+	else:
+		_process_walking(delta, input_dir, jump_pressed, sit_pressed)
 
 	move_and_slide()
 	_update_animation(input_dir)
+
+
+# --- States -----------------------------------------------------------------
+
+func _process_walking(delta: float, dir: float, jump_pressed: bool,
+		sit_pressed: bool) -> void:
+	if sit_pressed and is_on_floor() and absf(velocity.x) < sit_max_speed:
+		_set_seated(true)
+		velocity = Vector2.ZERO
+		return
+
+	_tick_timers(delta, jump_pressed)
+	_apply_gravity(delta)
+	_apply_horizontal(delta, dir)
+	_try_jump()
+	if Input.is_action_just_released("jump") and velocity.y < 0.0:
+		velocity.y *= jump_cut_factor
+
+
+func _process_seated(delta: float, dir: float, jump_pressed: bool,
+		sit_pressed: bool) -> void:
+	# Any intention to move ends the sitting. Falling does too -- if the ground
+	# is pulled out from under him he should not stay cross-legged in mid-air.
+	if sit_pressed or jump_pressed or not is_zero_approx(dir) or not is_on_floor():
+		_set_seated(false)
+		return
+
+	velocity.x = 0.0
+	_apply_gravity(delta)
+
+	seconds_still += delta
+	stillness_changed.emit(seconds_still)
+	if not is_still and seconds_still >= stillness_threshold:
+		is_still = true
+		became_still.emit()
+
+
+func _set_seated(seated: bool) -> void:
+	if is_seated == seated:
+		return
+	is_seated = seated
+	if not seated:
+		seconds_still = 0.0
+		stillness_changed.emit(0.0)
+		if is_still:
+			is_still = false
+			stopped_being_still.emit()
+	seated_changed.emit(seated)
 
 
 # --- Movement ---------------------------------------------------------------
@@ -104,9 +159,8 @@ func _apply_gravity(delta: float) -> void:
 
 func _apply_horizontal(delta: float, dir: float) -> void:
 	var grounded := is_on_floor()
-	var is_turning := not is_zero_approx(dir)
 	var ramp_time: float
-	if is_turning:
+	if not is_zero_approx(dir):
 		ramp_time = ground_accel_time if grounded else air_accel_time
 	else:
 		ramp_time = ground_stop_time if grounded else air_stop_time
@@ -123,46 +177,25 @@ func _try_jump() -> void:
 	_coyote_left = 0.0
 
 
-# --- Stillness --------------------------------------------------------------
-# The core verb of the game: the world only responds when you stop.
-
-func _tick_stillness(delta: float, any_input: bool) -> void:
-	var moving := any_input or not is_on_floor() or absf(velocity.x) > 1.0
-	if moving:
-		if seconds_still > 0.0:
-			seconds_still = 0.0
-			stillness_changed.emit(0.0)
-		if is_still:
-			is_still = false
-			stopped_being_still.emit()
-		return
-
-	seconds_still += delta
-	stillness_changed.emit(seconds_still)
-	if not is_still and seconds_still >= stillness_threshold:
-		is_still = true
-		became_still.emit()
-
-
 # --- Presentation -----------------------------------------------------------
 
 func _update_animation(dir: float) -> void:
-	if not is_zero_approx(dir):
+	if not is_zero_approx(dir) and not is_seated:
 		facing = 1 if dir > 0.0 else -1
 	if _sprite == null:
 		return
 	_sprite.flip_h = facing < 0
 
 	var next := "idle"
-	if not is_on_floor():
+	if is_seated:
+		next = "sit"
+	elif not is_on_floor():
 		next = "jump" if velocity.y < 0.0 else "fall"
 	elif absf(velocity.x) > 5.0:
 		next = "run"
-	elif is_still:
-		next = "sit"
 
-	# Fall back to whatever the sheet actually has, so a missing animation
-	# never crashes the game mid-demo.
+	# Fall back to whatever the sheet actually has, so a missing animation never
+	# crashes the game mid-demo.
 	if _sprite.sprite_frames == null or not _sprite.sprite_frames.has_animation(next):
 		return
 	if _sprite.animation != next:
