@@ -1,0 +1,16 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Exported builds
+/build/
+/export/
+
+# Third-party source art: licensed for use inside the game, NOT for
+# redistribution. Keep the raw files off any public repo. Derived/recoloured
+# versions that ship in the game are fine to commit.
+Assets/Tileset/platformer_source*.png
+Assets/Tileset/platformer_source*.png.import
+
+# Python tooling
+__pycache__/
