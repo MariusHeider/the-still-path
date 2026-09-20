@@ -1,44 +1,99 @@
 extends AnimatableBody2D
 class_name Elephant
-## Carries the seeker across the last gap, once the bird has fetched it.
+## Wades the seeker across the river, once the bird has gone to fetch it.
 ##
-## An AnimatableBody2D rather than a scripted position, so the physics engine
-## treats it as moved and the seeker rides properly on its back instead of
-## sliding off or being left behind.
+## An AnimatableBody2D rather than a scripted sprite, so the physics engine
+## treats it as moved and the seeker rides properly rather than sliding off.
+##
+## It is not standing there from the start. The bird says it will bring someone,
+## and then someone arrives -- which only means anything if the place was empty
+## before.
 
-## How far it walks, in pixels. Enough to clear the gap and set him down.
-@export var carry_distance := 340.0
-@export var carry_time := 5.0
-## How near the seeker has to be, horizontally, to count as aboard.
-@export var board_radius := 52.0
-## He must be at least this far above it, so walking past does not trigger it.
-@export var board_height := 30.0
+signal arrived()
 
-var is_ready := false
+## How far right of its waiting place it starts, out in the river. It wades in
+## from there when called.
+@export var entrance_offset := Vector2(190.0, 0.0)
+@export var entrance_time := 4.0
+## How far it carries him. Lands him on the first step of the mountain.
+@export var crossing_distance := 276.0
+@export var crossing_time := 7.0
+## Where the seeker sits on its back.
+@export var rider_offset := Vector2(-6.0, -58.0)
 
-var _walking := false
+enum State { HIDDEN, ARRIVING, WAITING, CROSSING, LANDED }
+
+var state: State = State.HIDDEN
+
+var _home := Vector2.ZERO
+
+@onready var _sprite: AnimatedSprite2D = $AnimatedSprite2D
+@onready var _shape: CollisionShape2D = $CollisionShape2D
 
 
-## Called once the fledgling is home and the bird has gone to fetch help.
-func make_ready() -> void:
-	is_ready = true
+func _ready() -> void:
+	add_to_group("interactable")
+	_home = position
+	position += entrance_offset
+	visible = false
+	_shape.set_deferred("disabled", true)
 
 
-func _physics_process(_delta: float) -> void:
-	if not is_ready or _walking:
+## Called once the fledgling is home and the bird has gone for help.
+func call_over() -> void:
+	if state != State.HIDDEN:
 		return
-	var seeker: Node2D = get_tree().get_first_node_in_group("seeker")
-	if seeker == null:
-		return
-	if absf(seeker.global_position.x - global_position.x) > board_radius:
-		return
-	if seeker.global_position.y > global_position.y - board_height:
-		return
-	_walk()
-
-
-func _walk() -> void:
-	_walking = true
+	state = State.ARRIVING
+	visible = true
+	_sprite.flip_h = true          # the sheet faces right; it is walking left
+	_sprite.play("walk")
 	var tween := create_tween()
-	tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property(self, "position:x", position.x + carry_distance, carry_time)
+	tween.tween_property(self, "position", _home, entrance_time)
+	tween.tween_callback(_on_arrived)
+
+
+func _on_arrived() -> void:
+	state = State.WAITING
+	_sprite.flip_h = false
+	_sprite.play("idle")
+	_shape.set_deferred("disabled", false)
+	arrived.emit()
+
+
+func rider_position() -> Vector2:
+	return global_position + rider_offset
+
+
+func interact_prompt() -> String:
+	if state == State.LANDED:
+		return "E to climb down"
+	return "E to climb up"
+
+
+func can_interact(player: Seeker) -> bool:
+	if player.riding == self:
+		# Only let him off once it has actually put him down somewhere.
+		return state == State.LANDED
+	return state == State.WAITING and player.carried == null
+
+
+func interact(player: Seeker) -> void:
+	if player.riding == self:
+		player.dismount(global_position + Vector2(24.0, -24.0))
+		return
+	player.mount(self)
+	_cross()
+
+
+func _cross() -> void:
+	state = State.CROSSING
+	_sprite.play("walk")
+	var tween := create_tween()
+	tween.tween_property(self, "position:x", position.x + crossing_distance,
+		crossing_time)
+	tween.tween_callback(_on_landed)
+
+
+func _on_landed() -> void:
+	state = State.LANDED
+	_sprite.play("idle")

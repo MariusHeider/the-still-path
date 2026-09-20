@@ -48,6 +48,10 @@ signal seated_changed(seated: bool)
 ## A jump pressed this long before landing still fires on touchdown.
 @export var jump_buffer_time := 0.12
 
+@export_group("Interaction")
+## How near he has to be for E to act on something rather than sit down.
+@export var interact_radius := 44.0
+
 @export_group("Recovery")
 ## Below this y the seeker has left the world and is put back. The level sets it
 ## from the map height; the default only matters if he is used outside one.
@@ -68,6 +72,13 @@ signal seated_changed(seated: bool)
 
 ## 1 = facing right, -1 = facing left.
 var facing := 1
+## Set by a ProjectionZone. Attention can only leave the body where the level
+## says it can, or the ability would be a way past every other puzzle.
+var can_project := false
+## What he is holding, if anything.
+var carried: Node2D = null
+## What he is riding, if anything.
+var riding: Node2D = null
 var is_seated := false
 var seconds_still := 0.0
 var is_still := false
@@ -103,6 +114,9 @@ func _physics_process(delta: float) -> void:
 	if _teleporting:
 		move_and_slide()
 		return
+	if riding != null:
+		_process_riding()
+		return
 	if global_position.y > fall_limit:
 		respawn()
 		return
@@ -127,10 +141,18 @@ func _physics_process(delta: float) -> void:
 
 func _process_walking(delta: float, dir: float, jump_pressed: bool,
 		sit_pressed: bool) -> void:
-	if sit_pressed and is_on_floor() and absf(velocity.x) < sit_max_speed:
-		_set_seated(true)
-		velocity = Vector2.ZERO
-		return
+	if sit_pressed:
+		# One key, and context decides. Something within reach takes priority
+		# over sitting, because if there is a chick at your feet you are not
+		# there to meditate.
+		var thing := current_interactable()
+		if thing != null:
+			thing.interact(self)
+			return
+		if is_on_floor() and absf(velocity.x) < sit_max_speed:
+			_set_seated(true)
+			velocity = Vector2.ZERO
+			return
 
 	_tick_timers(delta, jump_pressed)
 	_apply_gravity(delta)
@@ -168,7 +190,7 @@ func _process_seated(delta: float, dir: float, jump_pressed: bool,
 	stillness_changed.emit(seconds_still)
 	if not is_still and seconds_still >= stillness_threshold:
 		is_still = true
-		if _awareness != null:
+		if _awareness != null and can_project:
 			_awareness.activate(global_position + awareness_offset)
 		became_still.emit()
 
@@ -190,6 +212,43 @@ func _set_seated(seated: bool) -> void:
 			is_still = false
 			stopped_being_still.emit()
 	seated_changed.emit(seated)
+
+
+## The nearest thing E would act on, or null if E should just sit him down.
+func current_interactable() -> Node:
+	var best: Node = null
+	var best_distance := interact_radius
+	for node in get_tree().get_nodes_in_group("interactable"):
+		if not node.has_method("can_interact") or not node.can_interact(self):
+			continue
+		var distance: float = global_position.distance_to(node.global_position)
+		if distance <= best_distance:
+			best_distance = distance
+			best = node
+	return best
+
+
+# --- Riding -----------------------------------------------------------------
+
+func mount(what: Node2D) -> void:
+	riding = what
+	velocity = Vector2.ZERO
+	_set_seated(false)
+
+
+func dismount(at: Vector2) -> void:
+	riding = null
+	global_position = at
+	velocity = Vector2.ZERO
+
+
+func _process_riding() -> void:
+	velocity = Vector2.ZERO
+	global_position = riding.rider_position()
+	if Input.is_action_just_pressed("interact") and riding.can_interact(self):
+		riding.interact(self)
+		return
+	_update_animation(0.0)
 
 
 ## Puts him back on the last ground he stood on. Used for falling out of the
@@ -299,6 +358,9 @@ func _update_animation(dir: float) -> void:
 		return
 
 	var next := "idle"
+	if riding != null:
+		_play_first(["ride", "sit", "idle"])
+		return
 	if is_seated:
 		next = "sit"
 	elif not is_on_floor():
@@ -306,7 +368,22 @@ func _update_animation(dir: float) -> void:
 	elif absf(velocity.x) > 5.0:
 		next = "walk"
 
+	# Carrying uses its own version of whatever he is doing, when the sheet has
+	# one, and otherwise just looks like normal. Nothing breaks either way.
+	if carried != null:
+		_play_first(["carry_" + next, next])
+		return
 	_play(next)
+
+
+## Plays the first of these the sheet actually has.
+func _play_first(names: Array) -> void:
+	if _sprite == null or _sprite.sprite_frames == null:
+		return
+	for name in names:
+		if _sprite.sprite_frames.has_animation(name):
+			_play(name)
+			return
 
 
 ## Plays an animation if the sheet actually has it, so a sheet missing one never

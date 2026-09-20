@@ -21,6 +21,7 @@ one-tile-tall horizontal strip and the isolated single tile:
   cols 4-7   ROCK   bare mountain granite, for the climb at the end
   cols 8-11  SNOW   paint it over rock for the summit
   row 4      props and decoration
+  row 6      water: surface, then three body variants
   row 5      three extra interior fill tiles per terrain, at the same columns
              as that terrain's block. A single interior tile stamped across a
              large mass shows an obvious 32px grid; Godot picks at random among
@@ -32,7 +33,7 @@ import random
 from PIL import Image
 
 TILE = 32
-COLS, ROWS = 12, 6
+COLS, ROWS = 12, 7
 SEED = 20260919
 
 # --- Palettes ---------------------------------------------------------------
@@ -42,6 +43,8 @@ SAND = [(226, 199, 160), (203, 171, 128), (178, 143, 103), (146, 114, 80), (108,
 GRASS = [(190, 188, 118), (152, 152, 84), (112, 115, 58), (78, 80, 40)]
 ROCK = [(176, 170, 162), (142, 135, 126), (108, 102, 94), (78, 73, 67), (52, 48, 44)]
 SNOW = [(250, 250, 252), (230, 234, 242), (204, 212, 226), (172, 182, 200), (142, 152, 172)]
+# River water. Cool enough to read as cold and fast next to all this warm stone.
+WATER = [(196, 226, 232), (120, 176, 198), (72, 130, 164), (46, 92, 124), (30, 62, 92)]
 
 DARK_OUTLINE = (46, 33, 24)
 ROCK_OUTLINE = (34, 31, 29)
@@ -64,6 +67,7 @@ BLOCK_BITS = [
 PROPS_ROW = 4
 FILL_ROW = 5
 FILL_VARIANTS = 3
+WATER_ROW = 6
 
 TERRAINS = {
 	"earth": {
@@ -307,6 +311,27 @@ def grass_tile(rng, height, palette):
 	return px
 
 
+def water_tile(rng, surface):
+	"""River water. Horizontal streaks, because a stream reads as fast from the
+	direction of its highlights more than from anything else."""
+	px = [[WATER[2] for _ in range(TILE)] for _ in range(TILE)]
+	for _ in range(9):
+		y = rng.randrange(TILE)
+		x0 = rng.randrange(-8, TILE - 4)
+		shade_index = rng.choice((1, 3, 3))
+		for x in range(max(0, x0), min(TILE, x0 + rng.randint(6, 20))):
+			px[y][x] = WATER[shade_index]
+	if surface:
+		for x in range(TILE):
+			crest = rng.randint(0, 2)
+			for y in range(crest + 1):
+				px[y][x] = WATER[0] if y < crest else WATER[1]
+	else:
+		for _ in range(20):
+			px[rng.randrange(TILE)][rng.randrange(TILE)] = WATER[4]
+	return px
+
+
 def main() -> None:
 	rng = random.Random(SEED)
 	sheet = Image.new("RGBA", (COLS * TILE, ROWS * TILE), CLEAR)
@@ -346,6 +371,12 @@ def main() -> None:
 	]
 	for i, (label, px) in enumerate(props):
 		paste(px, i, PROPS_ROW)
+
+	paste(water_tile(rng, True), 0, WATER_ROW)
+	# Three bodies rather than one. A single water tile stamped over a river
+	# reads as brickwork, because the streaks line up in a grid.
+	for variant in range(3):
+		paste(water_tile(rng, False), 1 + variant, WATER_ROW)
 
 	out = "Assets/Tileset/tileset_generated.png"
 	sheet.save(out)

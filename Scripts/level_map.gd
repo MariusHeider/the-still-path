@@ -9,7 +9,8 @@ class_name LevelMap
 ##
 ##   .  empty            #  earth          R  rock         S  snow
 ##   P  player start     ~  stone slab     v  sapling      T  summit
-##   c  fledgling        n  nest           e  elephant
+##   c  fledgling        n  nest           e  elephant     w  river
+##   z  projection zone (where attention may leave the body)
 ##
 ## A line starting with ; is a comment, and blank lines are ignored, so the map
 ## file can document itself. The comment marker is NOT # -- that is the earth
@@ -28,7 +29,14 @@ const ENTITY_SCENES := {
 	"c": preload("res://Scenes/fledgling.tscn"),
 	"n": preload("res://Scenes/nest.tscn"),
 	"e": preload("res://Scenes/elephant.tscn"),
+	"z": preload("res://Scenes/projection_zone.tscn"),
 }
+
+## Water is drawn on its own layer above everything, so the river runs in front
+## of the elephant's legs while it wades.
+const WATER_CHAR := "w"
+const WATER_SURFACE := Vector2i(0, 6)
+const WATER_BODY_VARIANTS := 3
 
 ## What the bird says once its chick is home. Kept short: the rest of the game
 ## teaches without words, and a talkative bird would undercut that.
@@ -52,6 +60,7 @@ var _elephant: Elephant
 var _awareness: Awareness
 
 @onready var _terrain: TileMapLayer = $Terrain
+@onready var _water: TileMapLayer = $Water
 @onready var _entities: Node2D = $Entities
 @onready var _readout: Label = $HUD/Readout
 @onready var _message: Label = $HUD/Message
@@ -66,6 +75,7 @@ func _ready() -> void:
 		push_error("level map %s is empty or missing" % map_path)
 		return
 	_paint_terrain(rows)
+	_build_river(rows)
 	_spawn_entities(rows)
 	_frame_camera()
 	_message.modulate.a = 0.0
@@ -105,6 +115,35 @@ func _paint_terrain(rows: PackedStringArray) -> void:
 			cells_by_terrain[terrain].append(Vector2i(x, y))
 	for terrain in cells_by_terrain:
 		_terrain.set_cells_terrain_connect(cells_by_terrain[terrain], TERRAIN_SET, terrain)
+
+
+## The river: drawn on its own layer, and backed by an area that puts the
+## seeker back on the bank. It has no collision -- it does not stop him, it
+## refuses him.
+func _build_river(rows: PackedStringArray) -> void:
+	var hazard: Area2D = $Hazard
+	for y in rows.size():
+		var row := rows[y]
+		for x in row.length():
+			if row[x] != WATER_CHAR:
+				continue
+			var above := y > 0 and x < rows[y - 1].length() and rows[y - 1][x] == WATER_CHAR
+			var tile := WATER_SURFACE
+			if above:
+				tile = Vector2i(1 + randi() % WATER_BODY_VARIANTS, 6)
+			_water.set_cell(Vector2i(x, y), 0, tile)
+			var shape := CollisionShape2D.new()
+			var box := RectangleShape2D.new()
+			box.size = Vector2(TILE, TILE)
+			shape.shape = box
+			shape.position = Vector2(x * TILE + TILE * 0.5, y * TILE + TILE * 0.5)
+			hazard.add_child(shape)
+	hazard.body_entered.connect(_on_river_entered)
+
+
+func _on_river_entered(body: Node2D) -> void:
+	if body is Seeker:
+		body.respawn()
 
 
 func _spawn_entities(rows: PackedStringArray) -> void:
@@ -167,9 +206,9 @@ func _on_focusable_completed(source: Focusable) -> void:
 func _on_chick_delivered() -> void:
 	_show_lines(BIRD_LINES, 0.8)
 	if _elephant != null:
-		# It arrives while the bird is still speaking, so the player looks up
-		# from the message and finds it already there.
-		get_tree().create_timer(5.0).timeout.connect(_elephant.make_ready)
+		# It wades in while the bird is still speaking, so the player looks up
+		# from the message and finds that someone has actually come.
+		get_tree().create_timer(3.0).timeout.connect(_elephant.call_over)
 
 
 func _show_lines(lines: Array, lead_in: float) -> void:
@@ -204,8 +243,19 @@ func _on_progress_changed(ratio: float) -> void:
 ## What to say while he is settled but nothing is responding. Once the attention
 ## has been sent somewhere the body could stand, this is the only prompt the
 ## player needs to discover the whole mechanic.
+## The prompt is recomputed every frame because it depends on where he is
+## standing, which no signal reports.
+func _process(_delta: float) -> void:
+	if player == null or player.is_seated or player.riding != null:
+		return
+	var thing := player.current_interactable()
+	_readout.text = thing.interact_prompt() if thing != null else "E to sit"
+
+
 func _idle_hint() -> String:
-	if _awareness != null and _awareness.is_projected():
+	if _awareness == null or not _awareness.active:
+		return "still"
+	if _awareness.is_projected():
 		if _awareness.find_landing() != null:
 			return "E to go there"
 		return "nothing to stand on"

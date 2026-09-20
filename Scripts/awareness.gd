@@ -6,11 +6,9 @@ class_name Awareness
 ## away from him. Everything the game calls "focus" is measured from here, not
 ## from the body -- so sitting still and reaching out are the same act.
 ##
-## Its two uses are the same mechanic seen twice. First you send it across a
-## canyon and bring your own body to it, which is hard to read as anything
-## other than "the body is not what I am". Then you send it to a fallen chick
-## and carry that instead, which is the same power spent on something that is
-## not you at all.
+## It exists only where the level allows it -- see ProjectionZone. Sending it
+## across the canyon and bringing the body to it is hard to read as anything
+## other than: the body is not what I am.
 
 ## Pixels per second while being steered.
 @export var move_speed := 190.0
@@ -24,7 +22,6 @@ class_name Awareness
 
 var active := false
 var anchor := Vector2.ZERO
-var carrying: Node2D = null
 
 @onready var _sprite: Sprite2D = $Sprite
 
@@ -54,9 +51,7 @@ func activate(origin: Vector2) -> void:
 func deactivate() -> void:
 	active = false
 	visible = false
-	if carrying != null and carrying.has_method("return_home"):
-		carrying.return_home()
-	carrying = null
+
 
 
 func steer(direction: Vector2, delta: float, from: Vector2) -> void:
@@ -69,8 +64,6 @@ func steer(direction: Vector2, delta: float, from: Vector2) -> void:
 	# Brighten when the body could actually arrive here, so the player can read
 	# a valid landing without a separate marker cluttering the screen.
 	_sprite.modulate = Color(1.3, 1.3, 1.3) if find_landing() != null else Color.WHITE
-	if carrying != null:
-		carrying.global_position = global_position + Vector2(0, 6)
 
 
 func is_projected() -> bool:
@@ -97,11 +90,5 @@ func find_landing():
 	if hit.is_empty():
 		return null
 	return hit["position"]
-
-
-# --- Carrying ---------------------------------------------------------------
-
-func carry(node: Node2D) -> void:
-	carrying = node
 
 

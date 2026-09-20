@@ -44,6 +44,10 @@ const PROPS_ROW := 4
 ## large mass shows an obvious 32px grid of one repeated texture.
 const FILL_ROW := 5
 const FILL_VARIANTS := 3
+## Water is drawn on its own layer with no collision at all: it does not stop
+## the seeker, it puts him back on the bank.
+const WATER_ROW := 6
+const WATER_TILES := 4
 
 
 func _initialize() -> void:
@@ -109,6 +113,9 @@ func _initialize() -> void:
 		var shape: PackedVector2Array = (prop_shapes[column] if column < prop_shapes.size()
 			else PackedVector2Array())
 		_make_tile(source, Vector2i(column, PROPS_ROW), shape)
+
+	for column in WATER_TILES:
+		_make_tile(source, Vector2i(column, WATER_ROW), PackedVector2Array())
 
 	var err := ResourceSaver.save(tile_set, OUT)
 	if err != OK:

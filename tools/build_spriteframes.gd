@@ -19,6 +19,16 @@ const SHEET := "res://Assets/Character/Character_Spritesheet.png"
 const OUT := "res://Assets/Character/seeker_frames.tres"
 const FRAME := 56
 
+## The elephant sheet: 108x108, 9 columns x 3 rows. Row 0 is a turnaround
+## reference, not an animation. Both cycles face right.
+const ELEPHANT_SHEET := "res://Assets/Creatures/Elephant_Spritesheet.png"
+const ELEPHANT_OUT := "res://Assets/Creatures/elephant_frames.tres"
+const ELEPHANT_FRAME := 108
+const ELEPHANT_ANIMATIONS := [
+	["idle", 1, 0, 8, 7.0, true],
+	["walk", 2, 0, 7, 9.0, true],
+]
+
 ## name, row, first column, last column (inclusive), fps, loop
 const ANIMATIONS := [
 	["idle", 5, 0, 4, 6.0, true],
@@ -70,4 +80,35 @@ func _initialize() -> void:
 		quit(1)
 		return
 	print("wrote %s" % OUT)
+
+	if not _build(ELEPHANT_SHEET, ELEPHANT_OUT, ELEPHANT_FRAME, ELEPHANT_ANIMATIONS):
+		quit(1)
+		return
 	quit()
+
+
+func _build(sheet_path: String, out_path: String, size: int,
+		animations: Array) -> bool:
+	var sheet: Texture2D = load(sheet_path)
+	if sheet == null:
+		push_error("could not load %s" % sheet_path)
+		return false
+	var frames := SpriteFrames.new()
+	frames.remove_animation("default")
+	for entry in animations:
+		var name: String = entry[0]
+		frames.add_animation(name)
+		frames.set_animation_speed(name, entry[4])
+		frames.set_animation_loop(name, entry[5])
+		for column in range(entry[2], entry[3] + 1):
+			var region := AtlasTexture.new()
+			region.atlas = sheet
+			region.region = Rect2(column * size, entry[1] * size, size, size)
+			frames.add_frame(name, region)
+		print("  %-14s row %d, frames %d-%d" % [name, entry[1], entry[2], entry[3]])
+	var save_err := ResourceSaver.save(frames, out_path)
+	if save_err != OK:
+		push_error("could not save %s (error %d)" % [out_path, save_err])
+		return false
+	print("wrote %s" % out_path)
+	return true
