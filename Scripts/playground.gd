@@ -30,6 +30,7 @@ const SOLID: Array[Rect2i] = [
 func _ready() -> void:
 	_paint_terrain()
 	_player.seated_changed.connect(_on_seated_changed)
+	_player.stillness_changed.connect(_on_stillness_changed)
 	_focus.target_changed.connect(_on_target_changed)
 	_focus.progress_changed.connect(_on_progress_changed)
 	_refresh()
@@ -54,6 +55,19 @@ func _on_seated_changed(_seated: bool) -> void:
 	_refresh()
 
 
+## While the seeker is still settling, nothing is responding to him yet, and the
+## readout should say so rather than sit blank. Runs before the focus system
+## each frame, so once attention starts the focus meter overwrites this.
+func _on_stillness_changed(seconds: float) -> void:
+	if not _player.is_seated:
+		return
+	if _player.is_still:
+		if _focus.target == null:
+			_readout.text = "still. nothing within reach"
+		return
+	_readout.text = "settling  %s" % _meter(seconds / maxf(_player.stillness_threshold, 0.01))
+
+
 func _on_target_changed(_target: Focusable) -> void:
 	_refresh()
 
@@ -62,15 +76,19 @@ func _on_progress_changed(ratio: float) -> void:
 	if _focus.target == null:
 		_refresh()
 		return
-	var filled := int(ratio * METER_WIDTH)
-	_readout.text = "attending  [%s%s]" % [
-		"=".repeat(filled), " ".repeat(METER_WIDTH - filled)
-	]
+	_readout.text = "attending  %s" % _meter(ratio)
+
+
+func _meter(ratio: float) -> String:
+	var filled := int(clampf(ratio, 0.0, 1.0) * METER_WIDTH)
+	return "[%s%s]" % ["=".repeat(filled), " ".repeat(METER_WIDTH - filled)]
 
 
 func _refresh() -> void:
 	if not _player.is_seated:
 		_readout.text = "E to sit"
+	elif not _player.is_still:
+		_readout.text = "settling  %s" % _meter(0.0)
 	elif _focus.target == null:
 		_readout.text = "still. nothing within reach"
 	else:

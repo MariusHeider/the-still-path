@@ -42,27 +42,30 @@ func _physics_process(_delta: float) -> bool:
 	elif _step == SETTLE + 6:
 		_release("interact")
 		_check(_player.is_seated, "pressing interact on level ground should sit")
-	elif _step == SETTLE + 40:
+	elif _step == 120:
+		# 1s settling at 60Hz, so attention has only just begun by now.
 		_check(_scene.get_node("Player/FocusSystem").target == _stone,
 			"the slab should be the focus target when seated beside it")
-	elif _step == 260:
+	elif _step == 520:
+		# 1s settle + 5s attention + 1.1s travel, with margin.
 		var body: AnimatableBody2D = _stone.get_node("Body")
 		var moved: Vector2 = body.global_position - _stone_start
 		_check(moved.x > 140.0, "slab should have slid across the gap, moved %s" % moved)
 		_check(_stone.is_done, "slab should be marked done")
 
 	# --- The seed -----------------------------------------------------------
-	elif _step == 280:
+	elif _step == 540:
 		_press("interact")          # stand back up
-	elif _step == 282:
+	elif _step == 542:
 		_release("interact")
 		_player.global_position = Vector2(920, 320)
-	elif _step == 300:
+	elif _step == 560:
 		_press("interact")
-	elif _step == 302:
+	elif _step == 562:
 		_release("interact")
 		_check(_player.is_seated, "seeker should be seated beside the sapling")
-	elif _step == 560:
+	elif _step == 1120:
+		# 1s settle + 5s attention + 1.85s of growing and flowering, with margin.
 		_check(_plant.is_done, "sapling should have grown into a vine")
 		var shape: CollisionShape2D = _plant.get_node("Platform/CollisionShape2D")
 		_check(not shape.disabled, "vine platform collider should be enabled")

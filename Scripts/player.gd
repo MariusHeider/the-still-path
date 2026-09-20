@@ -49,9 +49,11 @@ signal seated_changed(seated: bool)
 @export var jump_buffer_time := 0.12
 
 @export_group("Stillness")
-## How long seated before the world starts responding. The focus system has its
-## own per-object timing on top of this; this is just the settling-in moment.
-@export var stillness_threshold := 0.35
+## How long after sitting down before the count even begins. This is the
+## settling-in moment: the seeker is lowering himself and arriving, and nothing
+## should be responding to him yet. The focus system starts from zero only once
+## this has passed, so the total wait is this plus the object's own focus_time.
+@export var stillness_threshold := 1.0
 ## Below this speed, the seeker is considered steady enough to sit down.
 @export var sit_max_speed := 20.0
 

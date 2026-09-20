@@ -29,10 +29,12 @@ const ANIMATIONS := [
 	# Lowering into the kneel, then holding it. The player sees the transition
 	# once and then a slow breathing loop.
 	["sit_down", 4, 0, 3, 12.0, false],
-	["sit", 4, 4, 8, 3.0, true],
+	# Held poses do not loop: the last frame stays on screen. Looping them makes
+	# the seeker visibly restart the settling motion over and over.
+	["sit", 4, 4, 8, 3.0, false],
 	# Front-facing meditation, for the one moment it is worth breaking camera.
 	["meditate_down", 3, 0, 3, 12.0, false],
-	["meditate", 3, 4, 8, 3.0, true],
+	["meditate", 3, 4, 8, 3.0, false],
 ]
 
 

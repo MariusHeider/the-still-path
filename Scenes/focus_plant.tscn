@@ -1,30 +1,31 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene format=3 uid="uid://cjhav7pxpw0hs"]
 
-[ext_resource type="Script" path="res://Scripts/focus_plant.gd" id="1_plant"]
-[ext_resource type="Texture2D" path="res://Assets/Props/vine.png" id="2_vine"]
-[ext_resource type="Texture2D" path="res://Assets/Props/sapling.png" id="3_sapling"]
-[ext_resource type="Texture2D" path="res://Assets/Props/flower.png" id="4_flower"]
+[ext_resource type="Script" uid="uid://xpk1we4hyibu" path="res://Scripts/focus_plant.gd" id="1_plant"]
+[ext_resource type="Texture2D" uid="uid://cblu4ikmfp6wr" path="res://Assets/Props/vine.png" id="2_vine"]
+[ext_resource type="Texture2D" uid="uid://lntkq13yec1x" path="res://Assets/Props/sapling.png" id="3_sapling"]
+[ext_resource type="Texture2D" uid="uid://cyuquxaree7is" path="res://Assets/Props/flower.png" id="4_flower"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_top"]
-size = Vector2(36, 8)
+size = Vector2(35, 8)
 
-[node name="FocusPlant" type="Node2D"]
+[node name="FocusPlant" type="Node2D" unique_id=2026847512]
 script = ExtResource("1_plant")
 
-[node name="Vine" type="Sprite2D" parent="."]
+[node name="Vine" type="Sprite2D" parent="." unique_id=1448223262]
 texture_filter = 1
 texture = ExtResource("2_vine")
 
-[node name="Flower" type="Sprite2D" parent="."]
+[node name="Flower" type="Sprite2D" parent="." unique_id=1344861814]
 texture_filter = 1
 texture = ExtResource("4_flower")
 
-[node name="Sapling" type="Sprite2D" parent="."]
+[node name="Sapling" type="Sprite2D" parent="." unique_id=121984446]
 texture_filter = 1
 position = Vector2(0, -9)
 texture = ExtResource("3_sapling")
 
-[node name="Platform" type="StaticBody2D" parent="."]
+[node name="Platform" type="StaticBody2D" parent="." unique_id=1689640658]
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform" unique_id=1432230709]
+position = Vector2(0.5, 4)
 shape = SubResource("RectangleShape2D_top")

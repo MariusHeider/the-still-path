@@ -1,37 +1,39 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene format=3 uid="uid://b3yknovcvr53p"]
 
-[ext_resource type="Script" path="res://Scripts/player.gd" id="1_seeker"]
+[ext_resource type="Script" uid="uid://r0ric1t3qrmo" path="res://Scripts/player.gd" id="1_seeker"]
 [ext_resource type="Script" path="res://Scripts/focus_system.gd" id="2_focus"]
 [ext_resource type="SpriteFrames" path="res://Assets/Character/seeker_frames.tres" id="3_frames"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
 size = Vector2(14, 34)
 
-[node name="Player" type="CharacterBody2D"]
+[node name="Player" type="CharacterBody2D" unique_id=431668120]
 collision_layer = 2
-collision_mask = 1
 floor_snap_length = 4.0
 script = ExtResource("1_seeker")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1110642440]
+visible = false
 position = Vector2(0, -17)
 shape = SubResource("RectangleShape2D_body")
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=2132932315]
 texture_filter = 1
 sprite_frames = ExtResource("3_frames")
-animation = &"idle"
+animation = &"sit"
 autoplay = "idle"
+frame = 4
+frame_progress = 1.0
 offset = Vector2(0, -19)
 
-[node name="FocusSystem" type="Node2D" parent="."]
+[node name="FocusSystem" type="Node2D" parent="." unique_id=1197440122]
 script = ExtResource("2_focus")
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1951000971]
 position = Vector2(0, -48)
-position_smoothing_enabled = true
-position_smoothing_speed = 8.0
 limit_left = -320
 limit_top = -80
 limit_right = 1472
 limit_bottom = 480
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0

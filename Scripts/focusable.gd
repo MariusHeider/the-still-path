@@ -12,8 +12,11 @@ class_name Focusable
 
 signal completed()
 
-## Seconds of unbroken attention this object needs before it responds.
-@export var focus_time := 1.2
+## Seconds of unbroken attention this object needs before it responds, counted
+## only after the seeker has finished settling. Long on purpose: the point of
+## the mechanic is that stillness is held, not tapped. Tune per object in the
+## Inspector if one puzzle wants to be quicker than another.
+@export var focus_time := 5.0
 ## Most puzzle objects should only resolve once.
 @export var one_shot := true
 ## Tint applied while this is the object being attended to.
