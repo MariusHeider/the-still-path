@@ -150,6 +150,8 @@ func _frame_camera() -> void:
 	camera.limit_top = 0
 	camera.limit_right = _width * TILE
 	camera.limit_bottom = _height * TILE
+	# One screen below the map is far enough that a fall reads as a fall.
+	player.fall_limit = _height * TILE + 200.0
 
 
 # --- Tool messages ----------------------------------------------------------

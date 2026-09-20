@@ -48,6 +48,11 @@ signal seated_changed(seated: bool)
 ## A jump pressed this long before landing still fires on touchdown.
 @export var jump_buffer_time := 0.12
 
+@export_group("Recovery")
+## Below this y the seeker has left the world and is put back. The level sets it
+## from the map height; the default only matters if he is used outside one.
+@export var fall_limit := 100000.0
+
 @export_group("Awareness")
 ## Where the attention appears, relative to the seated body.
 @export var awareness_offset := Vector2(0.0, -22.0)
@@ -73,6 +78,8 @@ var _buffer_left := 0.0
 var _transition := ""
 
 var _teleporting := false
+## The last place he stood safely, used to put him back after a fall.
+var _last_safe := Vector2.ZERO
 
 @onready var _sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
 @onready var _awareness: Awareness = get_node_or_null("Awareness")
@@ -96,6 +103,13 @@ func _physics_process(delta: float) -> void:
 	if _teleporting:
 		move_and_slide()
 		return
+	if global_position.y > fall_limit:
+		respawn()
+		return
+	# Remember solid ground, but only while standing still enough that the spot
+	# is somewhere he could be put back down without immediately falling again.
+	if is_on_floor() and absf(velocity.x) < 40.0:
+		_last_safe = global_position
 	var input_dir := Input.get_axis("move_left", "move_right")
 	var jump_pressed := Input.is_action_just_pressed("jump")
 	var sit_pressed := Input.is_action_just_pressed("interact")
@@ -176,6 +190,14 @@ func _set_seated(seated: bool) -> void:
 			is_still = false
 			stopped_being_still.emit()
 	seated_changed.emit(seated)
+
+
+## Puts him back on the last ground he stood on. Used for falling out of the
+## world and for anything he should not be able to walk into.
+func respawn() -> void:
+	_set_seated(false)
+	velocity = Vector2.ZERO
+	global_position = _last_safe
 
 
 # --- Awareness --------------------------------------------------------------
