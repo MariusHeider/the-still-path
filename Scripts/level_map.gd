@@ -25,7 +25,20 @@ const ENTITY_SCENES := {
 	"~": preload("res://Scenes/focus_stone.tscn"),
 	"v": preload("res://Scenes/focus_plant.tscn"),
 	"T": preload("res://Scenes/focus_summit.tscn"),
+	"c": preload("res://Scenes/fledgling.tscn"),
+	"n": preload("res://Scenes/nest.tscn"),
+	"e": preload("res://Scenes/elephant.tscn"),
 }
+
+## What the bird says once its chick is home. Kept short: the rest of the game
+## teaches without words, and a talkative bird would undercut that.
+## A plain Array, not PackedStringArray: only literal collections count as
+## constant expressions, and a PackedStringArray(...) call does not.
+const BIRD_LINES := [
+	"You carried what you did not have to carry.",
+	"Wait. I will bring someone who can help you.",
+	"I am a mother to the world.",
+]
 
 const METER_WIDTH := 16
 
@@ -33,6 +46,9 @@ const METER_WIDTH := 16
 
 var player: Seeker
 var focus: FocusSystem
+
+var _nest: Nest
+var _elephant: Elephant
 
 @onready var _terrain: TileMapLayer = $Terrain
 @onready var _entities: Node2D = $Entities
@@ -106,12 +122,18 @@ func _spawn_entities(rows: PackedStringArray) -> void:
 			if node is Seeker:
 				player = node
 				focus = node.get_node("FocusSystem")
+			elif node is Nest:
+				_nest = node
+			elif node is Elephant:
+				_elephant = node
 			elif node is Focusable:
 				node.completed.connect(_on_focusable_completed.bind(node))
 
 	if player == null:
 		push_error("level map has no P for the player start")
 		return
+	if _nest != null:
+		_nest.delivered.connect(_on_chick_delivered)
 	player.seated_changed.connect(func(_seated: bool) -> void: _refresh())
 	player.stillness_changed.connect(_on_stillness_changed)
 	focus.target_changed.connect(func(_t: Focusable) -> void: _refresh())
@@ -133,14 +155,27 @@ func _frame_camera() -> void:
 func _on_focusable_completed(source: Focusable) -> void:
 	if source.message.is_empty():
 		return
-	_message.text = source.message
-	var tween := create_tween()
 	# Late enough that the player has watched the thing happen first. The line
 	# names what they just did; it does not instruct them beforehand.
-	tween.tween_interval(1.2)
-	tween.tween_property(_message, "modulate:a", 1.0, 1.0)
-	tween.tween_interval(3.0)
-	tween.tween_property(_message, "modulate:a", 0.0, 1.2)
+	_show_lines([source.message], 1.2)
+
+
+func _on_chick_delivered() -> void:
+	_show_lines(BIRD_LINES, 0.8)
+	if _elephant != null:
+		# It arrives while the bird is still speaking, so the player looks up
+		# from the message and finds it already there.
+		get_tree().create_timer(5.0).timeout.connect(_elephant.make_ready)
+
+
+func _show_lines(lines: Array, lead_in: float) -> void:
+	var tween := create_tween()
+	tween.tween_interval(lead_in)
+	for line in lines:
+		tween.tween_callback(func() -> void: _message.text = line)
+		tween.tween_property(_message, "modulate:a", 1.0, 0.8)
+		tween.tween_interval(2.4)
+		tween.tween_property(_message, "modulate:a", 0.0, 0.7)
 
 
 # --- Readout ----------------------------------------------------------------

@@ -48,6 +48,10 @@ signal seated_changed(seated: bool)
 ## A jump pressed this long before landing still fires on touchdown.
 @export var jump_buffer_time := 0.12
 
+@export_group("Awareness")
+## Where the attention appears, relative to the seated body.
+@export var awareness_offset := Vector2(0.0, -22.0)
+
 @export_group("Stillness")
 ## How long after sitting down before the count even begins. This is the
 ## settling-in moment: the seeker is lowering himself and arriving, and nothing
@@ -68,15 +72,30 @@ var _buffer_left := 0.0
 ## Name of a one-shot animation currently blocking the state animations.
 var _transition := ""
 
+var _teleporting := false
+
 @onready var _sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D")
+@onready var _awareness: Awareness = get_node_or_null("Awareness")
 
 
 func _ready() -> void:
+	add_to_group("seeker")
 	if _sprite != null:
 		_sprite.animation_finished.connect(_on_sprite_animation_finished)
 
 
+## Everything the focus system measures is measured from here: the attention if
+## it has been sent out, the body otherwise.
+func focus_origin() -> Vector2:
+	if _awareness != null and _awareness.active:
+		return _awareness.global_position
+	return global_position
+
+
 func _physics_process(delta: float) -> void:
+	if _teleporting:
+		move_and_slide()
+		return
 	var input_dir := Input.get_axis("move_left", "move_right")
 	var jump_pressed := Input.is_action_just_pressed("jump")
 	var sit_pressed := Input.is_action_just_pressed("interact")
@@ -109,11 +128,24 @@ func _process_walking(delta: float, dir: float, jump_pressed: bool,
 
 func _process_seated(delta: float, dir: float, jump_pressed: bool,
 		sit_pressed: bool) -> void:
-	# Any intention to move ends the sitting. Falling does too -- if the ground
-	# is pulled out from under him he should not stay cross-legged in mid-air.
-	if sit_pressed or jump_pressed or not is_zero_approx(dir) or not is_on_floor():
+	# If the ground goes out from under him he should not stay kneeling in mid-air.
+	if not is_on_floor():
 		_set_seated(false)
 		return
+
+	if not is_still:
+		# Still settling. Any deliberate move abandons it, which is what lets a
+		# player who sat down by accident get straight back up.
+		if sit_pressed or jump_pressed or not is_zero_approx(dir):
+			_set_seated(false)
+			return
+	else:
+		_steer_awareness(delta)
+		# E means "go to where your attention is". If the attention is still at
+		# the body, that is just standing up.
+		if sit_pressed:
+			_commit()
+			return
 
 	velocity.x = 0.0
 	_apply_gravity(delta)
@@ -122,6 +154,8 @@ func _process_seated(delta: float, dir: float, jump_pressed: bool,
 	stillness_changed.emit(seconds_still)
 	if not is_still and seconds_still >= stillness_threshold:
 		is_still = true
+		if _awareness != null:
+			_awareness.activate(global_position + awareness_offset)
 		became_still.emit()
 
 
@@ -133,6 +167,8 @@ func _set_seated(seated: bool) -> void:
 		_play_transition("sit_down")
 	else:
 		_transition = ""
+		if _awareness != null:
+			_awareness.deactivate()
 	if not seated:
 		seconds_still = 0.0
 		stillness_changed.emit(0.0)
@@ -140,6 +176,42 @@ func _set_seated(seated: bool) -> void:
 			is_still = false
 			stopped_being_still.emit()
 	seated_changed.emit(seated)
+
+
+# --- Awareness --------------------------------------------------------------
+
+func _steer_awareness(delta: float) -> void:
+	if _awareness == null:
+		return
+	var direction := Vector2(
+		Input.get_axis("move_left", "move_right"),
+		Input.get_axis("move_up", "move_down"))
+	_awareness.steer(direction, delta, global_position + awareness_offset)
+
+
+func _commit() -> void:
+	if _awareness != null and _awareness.is_projected():
+		var landing = _awareness.find_landing()
+		if landing != null:
+			_teleport_to(landing)
+			return
+	_set_seated(false)
+
+
+func _teleport_to(landing: Vector2) -> void:
+	_teleporting = true
+	velocity = Vector2.ZERO
+	var tween := create_tween()
+	tween.tween_property(_sprite, "modulate:a", 0.0, 0.3)
+	tween.tween_callback(func() -> void: global_position = landing)
+	tween.tween_interval(0.15)
+	tween.tween_property(_sprite, "modulate:a", 1.0, 0.4)
+	tween.tween_callback(_finish_teleport)
+
+
+func _finish_teleport() -> void:
+	_teleporting = false
+	_set_seated(false)
 
 
 # --- Movement ---------------------------------------------------------------

@@ -14,12 +14,28 @@ var _step := 0
 var _failures: Array[String] = []
 
 
+var _broken := false
+
+
 func _initialize() -> void:
-	_level = load("res://Scenes/level.tscn").instantiate()
-	root.add_child(_level)
+	var packed: PackedScene = load("res://Scenes/level.tscn")
+	var node: Node = packed.instantiate()
+	root.add_child(node)
+	# If level_map.gd failed to compile, the scene root comes back as a plain
+	# Node2D with no script. Catch that here rather than dereferencing null
+	# every frame forever.
+	_level = node as LevelMap
+	if _level == null:
+		_broken = true
 
 
 func _physics_process(_delta: float) -> bool:
+	if _broken:
+		print("  FAIL  level.tscn has no LevelMap script -- it failed to compile")
+		print("")
+		print("level check FAILED (1)")
+		quit(1)
+		return true
 	_step += 1
 	if _step < 30:
 		return false

@@ -56,7 +56,7 @@ func _find_nearest() -> Focusable:
 		var candidate := node as Focusable
 		if candidate == null or not candidate.can_focus():
 			continue
-		var distance := _seeker.global_position.distance_to(candidate.focus_point())
+		var distance := _seeker.focus_origin().distance_to(candidate.focus_point())
 		if distance <= best_distance:
 			best_distance = distance
 			best = candidate

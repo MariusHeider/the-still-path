@@ -36,6 +36,11 @@ BARK = [(142, 120, 94), (110, 90, 70), (78, 64, 50), (50, 41, 32)]
 PETAL = [(252, 230, 234), (240, 200, 210), (212, 156, 174), (166, 112, 132)]
 CORE = [(248, 216, 132), (214, 172, 84), (168, 128, 58)]
 
+# Ajna blue for the awareness: cold and luminous, and deliberately the one hue
+# that appears nowhere in the warm earth palette, so it reads instantly as not
+# belonging to the body.
+WISP = [(232, 246, 255), (150, 206, 248), (78, 150, 226), (40, 92, 176)]
+
 CLEAR = (0, 0, 0, 0)
 
 
@@ -179,6 +184,100 @@ def make_sapling():
 	return px
 
 
+def make_wisp(rng):
+	"""The point of awareness. A soft core with a dithered halo.
+
+	Dithering the falloff rather than using real alpha keeps it inside the pixel
+	art idiom -- a smoothly faded sprite next to hard-edged tiles looks like it
+	came from a different game.
+	"""
+	size = 24
+	px = blank(size, size)
+	centre = (size - 1) / 2.0
+	for y in range(size):
+		for x in range(size):
+			d = ((x - centre) ** 2 + (y - centre) ** 2) ** 0.5 / (size / 2.0)
+			if d > 1.0:
+				continue
+			if d < 0.22:
+				px[y][x] = WISP[0]
+			elif d < 0.42:
+				px[y][x] = WISP[1]
+			elif d < 0.66:
+				px[y][x] = WISP[1] if rng.random() < 0.55 else WISP[2]
+			elif d < 0.85:
+				px[y][x] = WISP[2] if rng.random() < 0.5 else WISP[3]
+			elif rng.random() < 0.3:
+				px[y][x] = WISP[3]
+	return px
+
+
+def make_fledgling(rng):
+	"""Placeholder chick. Replace with real art when you have it."""
+	w, h = 16, 14
+	px = blank(w, h)
+	body = [(196, 172, 120), (158, 132, 88), (110, 90, 58)]
+	for y in range(h):
+		for x in range(w):
+			dx, dy = (x - 7.5) / 5.0, (y - 8.5) / 4.0
+			d = dx * dx + dy * dy
+			if d <= 1.0:
+				px[y][x] = body[0] if dy < -0.3 else body[1]
+			elif d <= 1.35:
+				px[y][x] = body[2]
+	for dx in range(-2, 3):          # head
+		for dy in range(-2, 3):
+			if dx * dx + dy * dy <= 5:
+				put(px, 10 + dx, 4 + dy, body[0] if dy < 0 else body[1])
+	put(px, 13, 4, (60, 48, 32))     # beak
+	put(px, 11, 3, (40, 34, 24))     # eye
+	return px
+
+
+def make_nest(rng):
+	"""Placeholder nest."""
+	w, h = 28, 14
+	px = blank(w, h)
+	twig = [(152, 122, 84), (118, 92, 62), (84, 64, 44)]
+	for y in range(4, h):
+		for x in range(w):
+			dx, dy = (x - 13.5) / 13.0, (y - 13.0) / 9.0
+			if dx * dx + dy * dy <= 1.0:
+				px[y][x] = twig[rng.randrange(3)]
+	for x in range(w):               # rim
+		for y in range(4, 7):
+			dx, dy = (x - 13.5) / 13.0, (y - 13.0) / 9.0
+			if 0.72 <= dx * dx + dy * dy <= 1.0:
+				px[y][x] = twig[0]
+	return px
+
+
+def make_elephant():
+	"""Placeholder elephant: a readable silhouette, nothing more. Replace it."""
+	w, h = 80, 56
+	px = blank(w, h)
+	hide = [(150, 146, 148), (118, 114, 118), (88, 84, 90), (58, 55, 60)]
+	def lump(cx, cy, rx, ry):
+		for y in range(max(0, cy - ry), min(h, cy + ry + 1)):
+			for x in range(max(0, cx - rx), min(w, cx + rx + 1)):
+				d = ((x - cx) / float(rx)) ** 2 + ((y - cy) / float(ry)) ** 2
+				if d > 1.12:
+					continue
+				if d > 0.9:
+					px[y][x] = hide[3]
+				else:
+					lit = (y - cy) / float(ry)
+					px[y][x] = hide[0] if lit < -0.35 else (hide[1] if lit < 0.35 else hide[2])
+	lump(40, 26, 26, 16)             # body
+	lump(16, 26, 12, 12)             # head
+	for i in range(16):              # trunk
+		lump(10 - i // 3, 34 + i, 3, 2)
+	for x in (26, 40, 52): 	         # legs
+		lump(x, 46, 6, 9)
+	lump(64, 22, 4, 7)               # tail end
+	return px
+
+
 # --- Background trees -------------------------------------------------------
 
 def canopy_mass(px, blobs, rng):
@@ -295,6 +394,10 @@ def main() -> None:
 	save(make_vine(rng), "Assets/Props/vine.png")
 	save(make_sapling(), "Assets/Props/sapling.png")
 	save(make_flower(), "Assets/Props/flower.png")
+	save(make_wisp(rng), "Assets/Props/wisp.png")
+	save(make_fledgling(rng), "Assets/Props/fledgling.png")
+	save(make_nest(rng), "Assets/Props/nest.png")
+	save(make_elephant(), "Assets/Props/elephant.png")
 	save(make_tree(rng, 96, 112, "banyan"), "Assets/Props/tree_banyan.png")
 	save(make_tree(rng, 56, 96, "slim"), "Assets/Props/tree_slim.png")
 	save(make_tree(rng, 72, 80, "slim"), "Assets/Props/tree_small.png")

@@ -2,7 +2,8 @@
 .godot/
 /android/
 
-# Exported builds
+# Exported builds. docs/ is intentionally NOT ignored: GitHub Pages serves
+# the playable build from there.
 /build/
 /export/
 

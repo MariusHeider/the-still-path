@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/awareness.gd" id="1_awareness"]
+[ext_resource type="Texture2D" path="res://Assets/Props/wisp.png" id="2_wisp"]
+
+[node name="Awareness" type="Node2D"]
+script = ExtResource("1_awareness")
+
+[node name="Sprite" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_wisp")
