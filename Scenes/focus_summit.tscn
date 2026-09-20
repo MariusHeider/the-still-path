@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/focus_summit.gd" id="1_summit"]
+[ext_resource type="Texture2D" path="res://Assets/Tileset/tileset_generated.png" id="2_sheet"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pillar"]
+atlas = ExtResource("2_sheet")
+region = Rect2(32, 128, 32, 32)
+
+[node name="FocusSummit" type="Node2D"]
+script = ExtResource("1_summit")
+focus_time = 8.0
+
+[node name="Marker" type="Sprite2D" parent="."]
+texture_filter = 1
+position = Vector2(0, -16)
+texture = SubResource("AtlasTexture_pillar")
