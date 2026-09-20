@@ -6,7 +6,7 @@ extends Control
 ## the line arrives AFTER the player has read the rules, not before: it lands as
 ## a recognition rather than as a lesson to be applied.
 
-const LEVEL := "res://Scenes/playground.tscn"
+const LEVEL := "res://Scenes/level.tscn"
 
 var _started := false
 

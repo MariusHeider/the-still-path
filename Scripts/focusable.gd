@@ -16,9 +16,12 @@ signal completed()
 ## only after the seeker has finished settling. Long on purpose: the point of
 ## the mechanic is that stillness is held, not tapped. Tune per object in the
 ## Inspector if one puzzle wants to be quicker than another.
-@export var focus_time := 5.0
+@export var focus_time := 3.0
 ## Most puzzle objects should only resolve once.
 @export var one_shot := true
+## Shown by the level after this resolves, once the player has watched it
+## happen. Empty means nothing is shown.
+@export_multiline var message := ""
 ## Tint applied while this is the object being attended to.
 @export var highlight_tint := Color(1.35, 1.28, 0.95)
 
