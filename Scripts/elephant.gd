@@ -18,8 +18,9 @@ signal arrived()
 ## How far it carries him. Lands him on the first step of the mountain.
 @export var crossing_distance := 276.0
 @export var crossing_time := 7.0
-## Where the seeker sits on its back.
-@export var rider_offset := Vector2(-6.0, -58.0)
+## Where the seeker sits on its back. Low enough that his legs disappear behind
+## the animal rather than perching on top of it.
+@export var rider_offset := Vector2(-4.0, -46.0)
 
 enum State { HIDDEN, ARRIVING, WAITING, CROSSING, LANDED }
 

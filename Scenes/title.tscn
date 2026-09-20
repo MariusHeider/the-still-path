@@ -39,18 +39,18 @@ E         sit"
 horizontal_alignment = 1
 
 [node name="Prompt" type="Label" parent="."]
-offset_top = 290.0
+offset_top = 316.0
 offset_right = 640.0
-offset_bottom = 310.0
+offset_bottom = 336.0
 theme_override_colors/font_color = Color(0.478, 0.435, 0.373, 1)
 theme_override_font_sizes/font_size = 12
 text = "press any key"
 horizontal_alignment = 1
 
 [node name="Tool" type="Label" parent="."]
-offset_top = 246.0
+offset_top = 268.0
 offset_right = 640.0
-offset_bottom = 276.0
+offset_bottom = 298.0
 theme_override_colors/font_color = Color(0.937, 0.855, 0.706, 1)
 theme_override_font_sizes/font_size = 16
 text = "All the rules are my rules."

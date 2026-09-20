@@ -233,6 +233,7 @@ func current_interactable() -> Node:
 func mount(what: Node2D) -> void:
 	riding = what
 	velocity = Vector2.ZERO
+	facing = 1
 	_set_seated(false)
 
 
@@ -359,7 +360,9 @@ func _update_animation(dir: float) -> void:
 
 	var next := "idle"
 	if riding != null:
-		_play_first(["ride", "sit", "idle"])
+		# Plain idle until there is a riding pose; sitting cross-legged on an
+		# elephant's back looks stranger than simply standing there.
+		_play_first(["ride", "idle"])
 		return
 	if is_seated:
 		next = "sit"
