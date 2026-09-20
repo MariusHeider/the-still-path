@@ -49,6 +49,7 @@ var focus: FocusSystem
 
 var _nest: Nest
 var _elephant: Elephant
+var _awareness: Awareness
 
 @onready var _terrain: TileMapLayer = $Terrain
 @onready var _entities: Node2D = $Entities
@@ -122,6 +123,7 @@ func _spawn_entities(rows: PackedStringArray) -> void:
 			if node is Seeker:
 				player = node
 				focus = node.get_node("FocusSystem")
+				_awareness = node.get_node_or_null("Awareness")
 			elif node is Nest:
 				_nest = node
 			elif node is Elephant:
@@ -185,7 +187,7 @@ func _on_stillness_changed(seconds: float) -> void:
 		return
 	if player.is_still:
 		if focus.target == null:
-			_readout.text = "still. nothing within reach"
+			_readout.text = _idle_hint()
 		return
 	_readout.text = "settling  %s" % _meter(seconds / maxf(player.stillness_threshold, 0.01))
 
@@ -195,6 +197,17 @@ func _on_progress_changed(ratio: float) -> void:
 		_refresh()
 		return
 	_readout.text = "attending  %s" % _meter(ratio)
+
+
+## What to say while he is settled but nothing is responding. Once the attention
+## has been sent somewhere the body could stand, this is the only prompt the
+## player needs to discover the whole mechanic.
+func _idle_hint() -> String:
+	if _awareness != null and _awareness.is_projected():
+		if _awareness.find_landing() != null:
+			return "E to go there"
+		return "nothing to stand on"
+	return "WASD moves your attention"
 
 
 func _meter(ratio: float) -> String:
@@ -210,6 +223,6 @@ func _refresh() -> void:
 	elif not player.is_still:
 		_readout.text = "settling  %s" % _meter(0.0)
 	elif focus.target == null:
-		_readout.text = "still. nothing within reach"
+		_readout.text = _idle_hint()
 	else:
 		_on_progress_changed(0.0)
