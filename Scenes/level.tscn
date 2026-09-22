@@ -4,15 +4,13 @@
 [ext_resource type="TileSet" uid="uid://c7yxgt1fxw5qf" path="res://Assets/Tileset/terrain.tres" id="2_terrain"]
 [ext_resource type="Script" uid="uid://j232a1v0y0rl" path="res://Scripts/level_audio.gd" id="3_audio"]
 [ext_resource type="Script" uid="uid://b43cxubc5oqmw" path="res://Scripts/river_current.gd" id="4_current"]
-
-[ext_resource type="Script" path="res://Scripts/river_ambience.gd" id="5_stream"]
-
+[ext_resource type="Script" uid="uid://baxbd1bowgpcq" path="res://Scripts/river_ambience.gd" id="5_stream"]
 [ext_resource type="PackedScene" path="res://Scenes/world_background.tscn" id="6_background"]
 
 [node name="Level" type="Node2D" unique_id=1616528812]
 script = ExtResource("1_level")
 
-[node name="Background" parent="." instance=ExtResource("6_background")]
+[node name="Background" parent="." unique_id=1958628523 instance=ExtResource("6_background")]
 
 [node name="Audio" type="Node" parent="." unique_id=1054892311]
 script = ExtResource("3_audio")
@@ -32,7 +30,7 @@ tile_set = ExtResource("2_terrain")
 [node name="Current" type="Node2D" parent="Water" unique_id=1943162294]
 script = ExtResource("4_current")
 
-[node name="Stream" type="AudioStreamPlayer2D" parent="Water"]
+[node name="Stream" type="AudioStreamPlayer2D" parent="Water" unique_id=122177246]
 script = ExtResource("5_stream")
 
 [node name="Hazard" type="Area2D" parent="." unique_id=2083866549]
@@ -47,7 +45,9 @@ offset_left = 10.0
 offset_top = 8.0
 offset_right = 400.0
 offset_bottom = 30.0
-theme_override_colors/font_color = Color(0.886, 0.827, 0.706, 1)
+theme_override_colors/font_color = Color(0.94509804, 0.88235295, 0.7411765, 1)
+theme_override_colors/font_outline_color = Color(0.078431375, 0.07058824, 0.05882353, 0.8509804)
+theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 13
 
 [node name="Message" type="Label" parent="HUD" unique_id=2099247627]

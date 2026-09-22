@@ -36,10 +36,20 @@ func arrive(at: Vector2) -> Tween:
 
 func say(line: String) -> Tween:
 	var label: Label = $Speech/Bubble/Text
+	var text_width := label.get_theme_font("font").get_string_size(
+		line, HORIZONTAL_ALIGNMENT_LEFT, -1,
+		label.get_theme_font_size("font_size")
+	).x
+
+	label.autowrap_mode = (
+		TextServer.AUTOWRAP_OFF if text_width <= 240
+		else TextServer.AUTOWRAP_WORD
+	)
 	label.text = line
-	label.custom_minimum_size.x = minf(240, label.get_theme_font("font").get_string_size(line,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, label.get_theme_font_size("font_size")).x)
-	$Speech/Bubble.reset_size()
+	label.custom_minimum_size.x = minf(240, text_width)
+	label.update_minimum_size()
+	$Speech/Bubble.update_minimum_size()
+	_resize_bubble.call_deferred()
 	_speaking = true
 	$Speech/Bubble.modulate.a = 0.0
 	$Speech/Tail.modulate.a = 0.0
@@ -56,6 +66,12 @@ func say(line: String) -> Tween:
 		$Speech/Tail.hide()
 		speech_finished.emit(line))
 	return _speech_tween
+
+func _resize_bubble() -> void:
+	var bubble: PanelContainer = $Speech/Bubble
+	bubble.reset_size()
+	await get_tree().process_frame
+	bubble.reset_size()
 
 func leave(destination: Vector2) -> Tween:
 	departure_started.emit()
