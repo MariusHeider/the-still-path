@@ -1,0 +1,91 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://Scripts/focus_reveal.gd" id="1_reveal"]
+[ext_resource type="Texture2D" path="res://Assets/Tileset/tileset_generated.png" id="2_stones"]
+
+[sub_resource type="Gradient" id="MistGradient"]
+offsets = PackedFloat32Array(0, 0.25, 0.7, 1)
+colors = PackedColorArray(0.4, 0.43, 0.39, 0.98, 0.4, 0.43, 0.39, 0.98, 0.36, 0.39, 0.35, 0.4, 0.36, 0.39, 0.35, 0)
+
+[sub_resource type="GradientTexture2D" id="MistTexture"]
+gradient = SubResource("MistGradient")
+width = 320
+height = 512
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="RectangleShape2D" id="BoundaryShape"]
+size = Vector2(320, 512)
+
+[node name="FocusReveal" type="Node2D"]
+process_physics_priority = -1
+script = ExtResource("1_reveal")
+message = "What is there right now is all there is."
+message_delay = 1.6
+highlight_tint = Color(1.03, 1.03, 1.03, 1)
+
+[node name="Marker" type="Sprite2D" parent="."]
+position = Vector2(0, -16)
+texture = ExtResource("2_stones")
+region_enabled = true
+region_rect = Rect2(192, 128, 32, 32)
+
+[node name="Veil" type="Node2D" parent="."]
+z_index = 3
+
+[node name="Core" type="Sprite2D" parent="Veil"]
+position = Vector2(80, -20)
+texture = SubResource("MistTexture")
+scale = Vector2(1.2, 1.15)
+
+[node name="NearWisp" type="Sprite2D" parent="Veil"]
+position = Vector2(-25, -84)
+texture = SubResource("MistTexture")
+scale = Vector2(1.1, 0.85)
+modulate = Color(1, 1, 1, 0.42)
+
+[node name="HighWisp" type="Sprite2D" parent="Veil"]
+position = Vector2(138, -150)
+texture = SubResource("MistTexture")
+scale = Vector2(1.35, 0.85)
+modulate = Color(1, 1, 1, 0.5)
+
+[node name="FarWisp" type="Sprite2D" parent="Veil"]
+position = Vector2(238, 25)
+texture = SubResource("MistTexture")
+scale = Vector2(1.25, 0.9)
+modulate = Color(1, 1, 1, 0.52)
+
+[node name="DeepWisp" type="Sprite2D" parent="Veil"]
+position = Vector2(310, -70)
+texture = SubResource("MistTexture")
+scale = Vector2(1.5, 1.15)
+modulate = Color(1, 1, 1, 0.92)
+
+[node name="RightHigh" type="Sprite2D" parent="Veil"]
+position = Vector2(420, -165)
+texture = SubResource("MistTexture")
+scale = Vector2(1.6, 1.05)
+modulate = Color(1, 1, 1, 0.85)
+
+[node name="RightLow" type="Sprite2D" parent="Veil"]
+position = Vector2(495, 5)
+texture = SubResource("MistTexture")
+scale = Vector2(1.7, 1.1)
+modulate = Color(1, 1, 1, 0.9)
+
+[node name="TrailingWisp" type="Sprite2D" parent="Veil"]
+position = Vector2(640, -95)
+texture = SubResource("MistTexture")
+scale = Vector2(1.45, 1.2)
+modulate = Color(1, 1, 1, 0.66)
+
+[node name="Boundary" type="Area2D" parent="."]
+position = Vector2(80, 0)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Boundary"]
+shape = SubResource("BoundaryShape")

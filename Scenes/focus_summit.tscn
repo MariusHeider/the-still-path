@@ -1,17 +1,180 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://Scripts/focus_summit.gd" id="1_summit"]
 [ext_resource type="Texture2D" path="res://Assets/Tileset/tileset_generated.png" id="2_sheet"]
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_pillar"]
+[sub_resource type="AtlasTexture" id="Block"]
+atlas = ExtResource("2_sheet")
+region = Rect2(0, 128, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Capital"]
 atlas = ExtResource("2_sheet")
 region = Rect2(32, 128, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Column"]
+atlas = ExtResource("2_sheet")
+region = Rect2(64, 128, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Base"]
+atlas = ExtResource("2_sheet")
+region = Rect2(96, 128, 32, 32)
+
+[sub_resource type="RectangleShape2D" id="MeditationShape"]
+size = Vector2(256, 64)
 
 [node name="FocusSummit" type="Node2D"]
 script = ExtResource("1_summit")
 focus_time = 8.0
 
-[node name="Marker" type="Sprite2D" parent="."]
+[node name="Foundation" type="StaticBody2D" parent="."]
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Foundation"]
+polygon = PackedVector2Array(-176, 0, -128, -32, 128, -32, 176, 0, 176, 8, -176, 8)
+
+[node name="MeditationArea" type="Area2D" parent="."]
+position = Vector2(0, -48)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MeditationArea"]
+shape = SubResource("MeditationShape")
+
+[node name="Shrine" type="Node2D" parent="."]
+z_index = -1
 texture_filter = 1
-position = Vector2(0, -16)
-texture = SubResource("AtlasTexture_pillar")
+
+[node name="PL104Y48" type="Sprite2D" parent="Shrine"]
+position = Vector2(-104, -48)
+texture = SubResource("Base")
+
+[node name="PL104Y80" type="Sprite2D" parent="Shrine"]
+position = Vector2(-104, -80)
+texture = SubResource("Column")
+
+[node name="PL104Y112" type="Sprite2D" parent="Shrine"]
+position = Vector2(-104, -112)
+texture = SubResource("Column")
+
+[node name="PL104Y144" type="Sprite2D" parent="Shrine"]
+position = Vector2(-104, -144)
+texture = SubResource("Column")
+
+[node name="PL104Y176" type="Sprite2D" parent="Shrine"]
+position = Vector2(-104, -176)
+texture = SubResource("Column")
+
+[node name="PL104Y208" type="Sprite2D" parent="Shrine"]
+position = Vector2(-104, -208)
+texture = SubResource("Capital")
+
+[node name="P104Y48" type="Sprite2D" parent="Shrine"]
+position = Vector2(104, -48)
+texture = SubResource("Base")
+
+[node name="P104Y80" type="Sprite2D" parent="Shrine"]
+position = Vector2(104, -80)
+texture = SubResource("Column")
+
+[node name="P104Y112" type="Sprite2D" parent="Shrine"]
+position = Vector2(104, -112)
+texture = SubResource("Column")
+
+[node name="P104Y144" type="Sprite2D" parent="Shrine"]
+position = Vector2(104, -144)
+texture = SubResource("Column")
+
+[node name="P104Y176" type="Sprite2D" parent="Shrine"]
+position = Vector2(104, -176)
+texture = SubResource("Column")
+
+[node name="P104Y208" type="Sprite2D" parent="Shrine"]
+position = Vector2(104, -208)
+texture = SubResource("Capital")
+
+[node name="Step1" type="TextureRect" parent="Shrine"]
+offset_left = -176.0
+offset_top = -8.0
+offset_right = 176.0
+offset_bottom = 0.0
+mouse_filter = 2
+texture = SubResource("Block")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="Step2" type="TextureRect" parent="Shrine"]
+offset_left = -160.0
+offset_top = -16.0
+offset_right = 160.0
+offset_bottom = -8.0
+mouse_filter = 2
+texture = SubResource("Block")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="Step3" type="TextureRect" parent="Shrine"]
+offset_left = -144.0
+offset_top = -24.0
+offset_right = 144.0
+offset_bottom = -16.0
+mouse_filter = 2
+texture = SubResource("Block")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="Platform" type="TextureRect" parent="Shrine"]
+offset_left = -128.0
+offset_top = -32.0
+offset_right = 128.0
+offset_bottom = -24.0
+mouse_filter = 2
+texture = SubResource("Block")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="Lintel" type="TextureRect" parent="Shrine"]
+offset_left = -144.0
+offset_top = -240.0
+offset_right = 144.0
+offset_bottom = -224.0
+mouse_filter = 2
+texture = SubResource("Block")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="Roof" type="TextureRect" parent="Shrine"]
+offset_left = -120.0
+offset_top = -256.0
+offset_right = 120.0
+offset_bottom = -240.0
+mouse_filter = 2
+texture = SubResource("Block")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="Crown" type="TextureRect" parent="Shrine"]
+offset_left = -80.0
+offset_top = -272.0
+offset_right = 80.0
+offset_bottom = -256.0
+mouse_filter = 2
+texture = SubResource("Block")
+expand_mode = 1
+stretch_mode = 1
+[node name="LingaBase" type="Polygon2D" parent="Shrine"]
+polygon = PackedVector2Array(-2, -38, 8, -44, 42, -44, 52, -38, 66, -38, 66, -34, 50, -32, 4, -32, -2, -35)
+color = Color(0.26, 0.25, 0.23, 1)
+
+[node name="Linga" type="Polygon2D" parent="Shrine"]
+polygon = PackedVector2Array(16, -44, 16, -68, 20, -74, 30, -74, 34, -68, 34, -44)
+color = Color(0.16, 0.17, 0.16, 1)
+
+[node name="LingaHighlight" type="Polygon2D" parent="Shrine"]
+polygon = PackedVector2Array(19, -47, 19, -67, 22, -71, 24, -71, 22, -66, 22, -47)
+color = Color(0.37, 0.38, 0.34, 1)
+
+[node name="LingaMark" type="Polygon2D" parent="Shrine"]
+polygon = PackedVector2Array(22, -62, 30, -62, 30, -60, 22, -60)
+color = Color(0.76, 0.72, 0.62, 1)

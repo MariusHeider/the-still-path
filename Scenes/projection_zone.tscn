@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://Scripts/projection_zone.gd" id="1_zone"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_zone"]
-size = Vector2(512, 320)
+size = Vector2(96, 80)
 
 [node name="ProjectionZone" type="Area2D"]
 collision_layer = 0
@@ -12,5 +12,5 @@ monitorable = false
 script = ExtResource("1_zone")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, -80)
+position = Vector2(0, -32)
 shape = SubResource("RectangleShape2D_zone")

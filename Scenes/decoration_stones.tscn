@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/Tileset/tileset_generated.png" id="1_sheet"]
+
+[node name="LooseStones" type="Sprite2D"]
+texture_filter = 1
+texture = ExtResource("1_sheet")
+offset = Vector2(0, -16)
+region_enabled = true
+region_rect = Rect2(224, 128, 32, 32)

@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/Props/tree_banyan.png" id="1_tree"]
+
+[node name="Banyan" type="Sprite2D"]
+texture_filter = 1
+texture = ExtResource("1_tree")
+offset = Vector2(0, -56)

@@ -22,6 +22,8 @@ signal completed()
 ## Shown by the level after this resolves, once the player has watched it
 ## happen. Empty means nothing is shown.
 @export_multiline var message := ""
+## Wait for this object's response animation before showing its message.
+@export var message_delay := 1.2
 ## Tint applied while this is the object being attended to.
 @export var highlight_tint := Color(1.35, 1.28, 0.95)
 

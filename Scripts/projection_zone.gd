@@ -14,9 +14,12 @@ func _ready() -> void:
 
 func _on_body_entered(body: Node2D) -> void:
 	if body is Seeker:
-		body.can_project = true
+		if not body.projection_zones.has(self):
+			body.projection_zones.append(self)
+		body.can_project = not body.projection_zones.is_empty()
 
 
 func _on_body_exited(body: Node2D) -> void:
 	if body is Seeker:
-		body.can_project = false
+		body.projection_zones.erase(self)
+		body.can_project = not body.projection_zones.is_empty()

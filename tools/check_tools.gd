@@ -1,15 +1,16 @@
 extends SceneTree
+var _finishing := false
 ## Drives the mechanics that are slow and fiddly to test by hand: the attention
 ## being refused outside its zone and working inside it, carrying the fledgling
 ## home, and the elephant arriving and wading across.
 ##
 ## Run:  godot --headless --path . --script res://tools/check_tools.gd
 
-const OUTSIDE_ZONE := Vector2(300, 416)
-const CANYON_EDGE := Vector2(1800, 288)
-const NEAR_CHICK := Vector2(2180, 288)
-const AT_NEST := Vector2(2544, 96)
-const BESIDE_ELEPHANT := Vector2(2690, 288)
+const OUTSIDE_ZONE := Vector2(300, 608)
+const CANYON_EDGE := Vector2(3976, 480)
+const NEAR_CHICK := Vector2(5284, 480)
+const AT_NEST := Vector2(5296, 288)
+const BESIDE_ELEPHANT := Vector2(5954, 480)
 
 var _level: LevelMap
 var _player: Seeker
@@ -19,6 +20,7 @@ var _nest: Nest
 var _elephant: Elephant
 
 var _step := 0
+var _arrival_wait := 0
 var _failures: Array[String] = []
 
 
@@ -30,10 +32,11 @@ func _initialize() -> void:
 
 
 func _physics_process(_delta: float) -> bool:
+	if _finishing: return false
 	if _level == null:
 		print("  FAIL  level failed to compile")
-		quit(1)
-		return true
+		_finish(1)
+		return false
 	_step += 1
 
 	if _step == 10:
@@ -71,11 +74,11 @@ func _physics_process(_delta: float) -> bool:
 		Input.action_press("move_right")
 	elif _step == 380:
 		Input.action_release("move_right")
-		_check(_wisp.global_position.x > 2080.0,
+		_check(_wisp.global_position.x > 4256.0,
 			"attention reached the far bank, x=%.0f" % _wisp.global_position.x)
 		_tap("interact")
 	elif _step == 470:
-		_check(_player.global_position.x > 2060.0,
+		_check(_player.global_position.x > 4236.0,
 			"body followed it across, x=%.0f" % _player.global_position.x)
 		_player.global_position = NEAR_CHICK
 
@@ -97,9 +100,21 @@ func _physics_process(_delta: float) -> bool:
 
 	# --- the elephant arrives and wades across ------------------------------
 	elif _step == 600:
-		_check(_elephant.state == Elephant.State.HIDDEN,
-			"the elephant was not standing there all along")
+		_check(_elephant.state == Elephant.State.HIDDEN and not _level._adult_bird.visible,
+			"delivery alone does not bring help")
+		_player.global_position = Vector2(6080, 500)
+		_player.velocity = Vector2(0, 100)
 	elif _step == 1060:
+		# Arrival now follows the entire bird sequence; wait for the event/state
+		# instead of encoding the old three-second overlap into this check.
+		if _elephant.state != Elephant.State.WAITING:
+			_arrival_wait += 1
+			if _arrival_wait > 1800:
+				_check(false, "elephant arrival timed out")
+				_report()
+				return false
+			_step -= 1
+			return false
 		_check(_elephant.state == Elephant.State.WAITING,
 			"the elephant waded in after the bird called")
 		_player.global_position = BESIDE_ELEPHANT
@@ -117,10 +132,10 @@ func _physics_process(_delta: float) -> bool:
 		_tap("interact")
 	elif _step == 1640:
 		_check(_player.riding == null, "he climbed down")
-		_check(_player.global_position.x > 2940.0,
+		_check(_player.global_position.x > 6204.0,
 			"and he is across, x=%.0f" % _player.global_position.x)
 		_report()
-		return true
+		return false
 	return false
 
 
@@ -147,7 +162,12 @@ func _report() -> void:
 	print("")
 	if _failures.is_empty():
 		print("tools check passed")
-		quit(0)
+		_finish(0)
 	else:
 		print("tools check FAILED (%d)" % _failures.size())
-		quit(1)
+		_finish(1)
+
+func _finish(code := 0) -> void:
+	if _finishing: return
+	_finishing = true
+	preload("res://tools/test_cleanup.gd").finish(self, code)

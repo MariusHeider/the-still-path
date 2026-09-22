@@ -20,6 +20,10 @@ signal became_still()
 ## Emitted when the stillness ends, whether by standing or by falling.
 signal stopped_being_still()
 signal seated_changed(seated: bool)
+signal teleported()
+signal movement_relocated()
+signal final_meditation_succeeded()
+var final_success := false
 
 @export_group("Run")
 ## Top running speed in pixels per second (~4.7 tiles of 32px per second).
@@ -75,10 +79,17 @@ var facing := 1
 ## Set by a ProjectionZone. Attention can only leave the body where the level
 ## says it can, or the ability would be a way past every other puzzle.
 var can_project := false
+var projection_zones: Array[Area2D] = []
 ## What he is holding, if anything.
 var carried: Node2D = null
 ## What he is riding, if anything.
 var riding: Node2D = null
+## Set only by the final shrine's meditation area.
+var meditation_site: Node2D = null
+var _final_meditation := false
+## Only the unrevealed mist adjusts these; all other movement keeps its tuning.
+var mist_speed_scale := 1.0
+var mist_retreat := false
 var is_seated := false
 var seconds_still := 0.0
 var is_still := false
@@ -111,6 +122,10 @@ func focus_origin() -> Vector2:
 
 
 func _physics_process(delta: float) -> void:
+	if final_success:
+		velocity = Vector2.ZERO
+		_play("meditate")
+		return
 	if _teleporting:
 		move_and_slide()
 		return
@@ -127,6 +142,10 @@ func _physics_process(delta: float) -> void:
 	var input_dir := Input.get_axis("move_left", "move_right")
 	var jump_pressed := Input.is_action_just_pressed("jump")
 	var sit_pressed := Input.is_action_just_pressed("interact")
+	if mist_retreat:
+		input_dir = -0.45
+		jump_pressed = false
+		sit_pressed = false
 
 	if is_seated:
 		_process_seated(delta, input_dir, jump_pressed, sit_pressed)
@@ -196,11 +215,14 @@ func _process_seated(delta: float, dir: float, jump_pressed: bool,
 
 
 func _set_seated(seated: bool) -> void:
+	if final_success:
+		return
 	if is_seated == seated:
 		return
 	is_seated = seated
+	_final_meditation = seated and meditation_site != null
 	if seated:
-		_play_transition("sit_down")
+		_play_transition("meditate_down" if _final_meditation else "sit_down")
 	else:
 		_transition = ""
 		if _awareness != null:
@@ -222,6 +244,8 @@ func current_interactable() -> Node:
 		if not node.has_method("can_interact") or not node.can_interact(self):
 			continue
 		var distance: float = global_position.distance_to(node.global_position)
+		if node.has_method("interaction_distance"):
+			distance = node.interaction_distance(self)
 		if distance <= best_distance:
 			best_distance = distance
 			best = node
@@ -231,6 +255,7 @@ func current_interactable() -> Node:
 # --- Riding -----------------------------------------------------------------
 
 func mount(what: Node2D) -> void:
+	movement_relocated.emit()
 	riding = what
 	velocity = Vector2.ZERO
 	facing = 1
@@ -238,6 +263,7 @@ func mount(what: Node2D) -> void:
 
 
 func dismount(at: Vector2) -> void:
+	movement_relocated.emit()
 	riding = null
 	global_position = at
 	velocity = Vector2.ZERO
@@ -255,9 +281,15 @@ func _process_riding() -> void:
 ## Puts him back on the last ground he stood on. Used for falling out of the
 ## world and for anything he should not be able to walk into.
 func respawn() -> void:
+	respawn_at(_last_safe)
+
+
+## A level hazard can supply a fixed safe point without changing pit recovery.
+func respawn_at(at: Vector2) -> void:
+	movement_relocated.emit()
 	_set_seated(false)
 	velocity = Vector2.ZERO
-	global_position = _last_safe
+	global_position = at
 
 
 # --- Awareness --------------------------------------------------------------
@@ -285,7 +317,10 @@ func _teleport_to(landing: Vector2) -> void:
 	velocity = Vector2.ZERO
 	var tween := create_tween()
 	tween.tween_property(_sprite, "modulate:a", 0.0, 0.3)
-	tween.tween_callback(func() -> void: global_position = landing)
+	tween.tween_callback(func() -> void:
+		global_position = landing
+		movement_relocated.emit()
+		teleported.emit())
 	tween.tween_interval(0.15)
 	tween.tween_property(_sprite, "modulate:a", 1.0, 0.4)
 	tween.tween_callback(_finish_teleport)
@@ -332,7 +367,8 @@ func _apply_horizontal(delta: float, dir: float) -> void:
 	else:
 		ramp_time = ground_stop_time if grounded else air_stop_time
 	var step := max_speed / maxf(ramp_time, 0.001) * delta
-	velocity.x = move_toward(velocity.x, dir * max_speed, step)
+	var speed_scale := mist_speed_scale if dir > 0.0 else 1.0
+	velocity.x = move_toward(velocity.x, dir * max_speed * speed_scale, step)
 
 
 func _try_jump() -> void:
@@ -351,7 +387,7 @@ func _update_animation(dir: float) -> void:
 		facing = 1 if dir > 0.0 else -1
 	if _sprite == null:
 		return
-	_sprite.flip_h = facing < 0
+	_sprite.flip_h = facing < 0 and not _final_meditation
 
 	# A one-shot transition (lowering into the kneel) plays to the end before
 	# anything else takes over.
@@ -360,33 +396,16 @@ func _update_animation(dir: float) -> void:
 
 	var next := "idle"
 	if riding != null:
-		# Plain idle until there is a riding pose; sitting cross-legged on an
-		# elephant's back looks stranger than simply standing there.
-		_play_first(["ride", "idle"])
+		_play("idle")
 		return
 	if is_seated:
-		next = "sit"
+		next = "meditate" if _final_meditation else "sit"
 	elif not is_on_floor():
 		next = "jump" if velocity.y < 0.0 else "fall"
 	elif absf(velocity.x) > 5.0:
 		next = "walk"
 
-	# Carrying uses its own version of whatever he is doing, when the sheet has
-	# one, and otherwise just looks like normal. Nothing breaks either way.
-	if carried != null:
-		_play_first(["carry_" + next, next])
-		return
 	_play(next)
-
-
-## Plays the first of these the sheet actually has.
-func _play_first(names: Array) -> void:
-	if _sprite == null or _sprite.sprite_frames == null:
-		return
-	for name in names:
-		if _sprite.sprite_frames.has_animation(name):
-			_play(name)
-			return
 
 
 ## Plays an animation if the sheet actually has it, so a sheet missing one never
@@ -414,3 +433,14 @@ func _play_transition(name: String) -> void:
 
 func _on_sprite_animation_finished() -> void:
 	_transition = ""
+
+func lock_final_meditation() -> void:
+	if final_success:
+		return
+	final_success = true
+	is_seated = true
+	_final_meditation = true
+	_transition = ""
+	velocity = Vector2.ZERO
+	_play("meditate")
+	final_meditation_succeeded.emit()

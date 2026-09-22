@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://b3yknovcvr53p"]
+[gd_scene load_steps=7 format=3 uid="uid://b3yknovcvr53p"]
 
 [ext_resource type="Script" path="res://Scripts/player.gd" id="1_seeker"]
 [ext_resource type="Script" path="res://Scripts/focus_system.gd" id="2_focus"]
 [ext_resource type="SpriteFrames" path="res://Assets/Character/seeker_frames.tres" id="3_frames"]
 [ext_resource type="PackedScene" path="res://Scenes/awareness.tscn" id="4_awareness"]
+[ext_resource type="Script" path="res://Scripts/player_audio.gd" id="5_audio"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
 size = Vector2(14, 34)
@@ -29,6 +30,9 @@ offset = Vector2(0, -19)
 
 [node name="FocusSystem" type="Node2D" parent="."]
 script = ExtResource("2_focus")
+
+[node name="Audio" type="Node2D" parent="."]
+script = ExtResource("5_audio")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(0, -48)

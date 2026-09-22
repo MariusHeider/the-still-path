@@ -29,6 +29,8 @@ class_name FocusPlant
 @onready var _platform_shape: CollisionShape2D = $Platform/CollisionShape2D
 
 var _texture_size := Vector2.ZERO
+@export var growth_volume_db := -30.0
+@onready var growth_audio := Sound.local(self, Sound.GROWTH, growth_volume_db, "GrowthSound")
 
 
 func _ready() -> void:
@@ -53,6 +55,7 @@ func focus_point() -> Vector2:
 
 
 func _on_complete() -> void:
+	growth_audio.play()
 	var tween := create_tween()
 	tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tween.tween_property(_sapling, "modulate:a", 0.0, 0.3)

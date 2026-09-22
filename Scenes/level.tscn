@@ -1,28 +1,48 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://ryhwojllhidd"]
 
-[ext_resource type="Script" path="res://Scripts/level_map.gd" id="1_level"]
-[ext_resource type="TileSet" path="res://Assets/Tileset/terrain.tres" id="2_terrain"]
+[ext_resource type="Script" uid="uid://dja5jc3wytgoy" path="res://Scripts/level_map.gd" id="1_level"]
+[ext_resource type="TileSet" uid="uid://c7yxgt1fxw5qf" path="res://Assets/Tileset/terrain.tres" id="2_terrain"]
+[ext_resource type="Script" uid="uid://j232a1v0y0rl" path="res://Scripts/level_audio.gd" id="3_audio"]
+[ext_resource type="Script" uid="uid://b43cxubc5oqmw" path="res://Scripts/river_current.gd" id="4_current"]
 
-[node name="Level" type="Node2D"]
+[ext_resource type="Script" path="res://Scripts/river_ambience.gd" id="5_stream"]
+
+[ext_resource type="PackedScene" path="res://Scenes/world_background.tscn" id="6_background"]
+
+[node name="Level" type="Node2D" unique_id=1616528812]
 script = ExtResource("1_level")
 
-[node name="Terrain" type="TileMapLayer" parent="."]
+[node name="Background" parent="." instance=ExtResource("6_background")]
+
+[node name="Audio" type="Node" parent="." unique_id=1054892311]
+script = ExtResource("3_audio")
+
+[node name="Terrain" type="TileMapLayer" parent="." unique_id=66518436]
 tile_set = ExtResource("2_terrain")
 
-[node name="Entities" type="Node2D" parent="."]
+[node name="Entities" type="Node2D" parent="." unique_id=1090417793]
 
-[node name="Water" type="TileMapLayer" parent="."]
+[node name="Decorations" type="Node2D" parent="." unique_id=369132130]
+z_index = -2
+
+[node name="Water" type="TileMapLayer" parent="." unique_id=1387536673]
 z_index = 5
 tile_set = ExtResource("2_terrain")
 
-[node name="Hazard" type="Area2D" parent="."]
+[node name="Current" type="Node2D" parent="Water" unique_id=1943162294]
+script = ExtResource("4_current")
+
+[node name="Stream" type="AudioStreamPlayer2D" parent="Water"]
+script = ExtResource("5_stream")
+
+[node name="Hazard" type="Area2D" parent="." unique_id=2083866549]
 collision_layer = 0
 collision_mask = 2
 monitorable = false
 
-[node name="HUD" type="CanvasLayer" parent="."]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1020136114]
 
-[node name="Readout" type="Label" parent="HUD"]
+[node name="Readout" type="Label" parent="HUD" unique_id=1032261628]
 offset_left = 10.0
 offset_top = 8.0
 offset_right = 400.0
@@ -30,10 +50,13 @@ offset_bottom = 30.0
 theme_override_colors/font_color = Color(0.886, 0.827, 0.706, 1)
 theme_override_font_sizes/font_size = 13
 
-[node name="Message" type="Label" parent="HUD"]
-offset_top = 250.0
-offset_right = 640.0
-offset_bottom = 290.0
+[node name="Message" type="Label" parent="HUD" unique_id=2099247627]
+offset_left = 20.0
+offset_top = 44.0
+offset_right = 620.0
+offset_bottom = 96.0
 theme_override_colors/font_color = Color(0.945, 0.882, 0.741, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.07, 0.06, 0.85)
+theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 18
 horizontal_alignment = 1

@@ -1,4 +1,5 @@
 extends SceneTree
+var _finishing := false
 ## Headless smoke test for the sit-and-focus mechanic.
 ##
 ## Loads the playground, teleports the seeker next to each puzzle object in
@@ -31,6 +32,7 @@ func _initialize() -> void:
 
 
 func _physics_process(_delta: float) -> bool:
+	if _finishing: return false
 	_step += 1
 
 	# --- The slab -----------------------------------------------------------
@@ -73,7 +75,7 @@ func _physics_process(_delta: float) -> bool:
 			"vine platform should have risen, y = %.1f"
 			% _plant.get_node("Platform").position.y)
 		_report()
-		return true
+		return false
 
 	return false
 
@@ -98,7 +100,12 @@ func _report() -> void:
 	print("")
 	if _failures.is_empty():
 		print("smoke test passed")
-		quit(0)
+		_finish(0)
 	else:
 		print("smoke test FAILED (%d)" % _failures.size())
-		quit(1)
+		_finish(1)
+
+func _finish(code := 0) -> void:
+	if _finishing: return
+	_finishing = true
+	preload("res://tools/test_cleanup.gd").finish(self, code)

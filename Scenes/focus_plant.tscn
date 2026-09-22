@@ -10,6 +10,8 @@ size = Vector2(35, 8)
 
 [node name="FocusPlant" type="Node2D" unique_id=2026847512]
 script = ExtResource("1_plant")
+message = "My responsibility is limitless."
+message_delay = 2.0
 
 [node name="Vine" type="Sprite2D" parent="." unique_id=1448223262]
 texture_filter = 1

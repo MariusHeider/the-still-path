@@ -1,5 +1,6 @@
 extends Node2D
 class_name Awareness
+signal activated()
 ## The seeker's attention, as a thing in the world.
 ##
 ## While he is seated and settled, this appears at his chest and can be steered
@@ -22,6 +23,8 @@ class_name Awareness
 
 var active := false
 var anchor := Vector2.ZERO
+var _breath := 0.0
+const SCREEN_MARGIN := 12.0
 
 @onready var _sprite: Sprite2D = $Sprite
 
@@ -46,6 +49,7 @@ func activate(origin: Vector2) -> void:
 	tween.tween_property(self, "modulate:a", 1.0, 0.35)
 	tween.tween_property(self, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK) \
 		.set_ease(Tween.EASE_OUT)
+	activated.emit()
 
 
 func deactivate() -> void:
@@ -53,14 +57,31 @@ func deactivate() -> void:
 	visible = false
 
 
+func _process(delta: float) -> void:
+	if not active:
+		return
+	_breath += delta * 2.0
+	_sprite.scale = Vector2.ONE * (1.0 + 0.055 * sin(_breath))
+	_sprite.self_modulate.a = 0.9 + 0.08 * sin(_breath + 0.6)
+
+
+func visible_world_rect() -> Rect2:
+	var world_rect: Rect2 = get_viewport().get_canvas_transform().affine_inverse() * get_viewport_rect()
+	return world_rect.grow(-SCREEN_MARGIN)
+
+
 
 func steer(direction: Vector2, delta: float, from: Vector2) -> void:
+	if not active:
+		return
 	anchor = from
 	if direction != Vector2.ZERO:
 		global_position += direction.normalized() * move_speed * delta
 	var offset := global_position - anchor
 	if offset.length() > max_range:
 		global_position = anchor + offset.normalized() * max_range
+	var visible_rect := visible_world_rect()
+	global_position = global_position.clamp(visible_rect.position, visible_rect.end)
 	# Brighten when the body could actually arrive here, so the player can read
 	# a valid landing without a separate marker cluttering the screen.
 	_sprite.modulate = Color(1.3, 1.3, 1.3) if find_landing() != null else Color.WHITE

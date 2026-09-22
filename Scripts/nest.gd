@@ -19,12 +19,15 @@ func interact_prompt() -> String:
 
 
 func can_interact(player: Seeker) -> bool:
-	return not is_filled and player.carried != null
+	return not is_filled and player.carried is Fledgling and not player.carried.delivered
 
 
 func interact(player: Seeker) -> void:
-	var chick: Node2D = player.carried
-	if chick.has_method("release"):
-		chick.release(global_position + settle_offset)
+	if not can_interact(player):
+		return
+	var chick: Fledgling = player.carried
+	if chick.carrier != player or not chick.deliver_to(global_position + settle_offset):
+		return
 	is_filled = true
+	remove_from_group("interactable")
 	delivered.emit()

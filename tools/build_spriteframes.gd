@@ -31,7 +31,7 @@ const ELEPHANT_ANIMATIONS := [
 
 ## name, row, first column, last column (inclusive), fps, loop
 const ANIMATIONS := [
-	["idle", 5, 0, 4, 6.0, true],
+	["idle", 5, 0, 4, 3.0, true],
 	["walk", 2, 0, 5, 10.0, true],
 	["jump", 1, 3, 4, 12.0, false],
 	["fall", 1, 5, 5, 6.0, true],

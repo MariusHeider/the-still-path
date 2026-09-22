@@ -1,4 +1,5 @@
 extends SceneTree
+var _finishing := false
 ## Checks that the text map actually builds into a playable level.
 ##
 ## Catches the things that are invisible until you play: a map row that got
@@ -30,12 +31,13 @@ func _initialize() -> void:
 
 
 func _physics_process(_delta: float) -> bool:
+	if _finishing: return false
 	if _broken:
 		print("  FAIL  level.tscn has no LevelMap script -- it failed to compile")
 		print("")
 		print("level check FAILED (1)")
-		quit(1)
-		return true
+		_finish(1)
+		return false
 	_step += 1
 	if _step < 30:
 		return false
@@ -48,8 +50,9 @@ func _physics_process(_delta: float) -> bool:
 	for child in _level.get_node("Entities").get_children():
 		kinds[child.get_script().resource_path.get_file()] = child
 	_check(kinds.has("player.gd"), "player spawned")
-	_check(kinds.has("focus_stone.gd"), "stone slab spawned")
+	_check(not kinds.has("focus_stone.gd"), "main journey no longer uses the stone slab")
 	_check(kinds.has("focus_plant.gd"), "sapling spawned")
+	_check(kinds.has("focus_reveal.gd"), "perception clearing spawned")
 	_check(kinds.has("focus_summit.gd"), "summit spawned")
 
 	var player: Seeker = _level.player
@@ -57,17 +60,9 @@ func _physics_process(_delta: float) -> bool:
 	if player != null:
 		_check(player.is_on_floor(),
 			"player starts on solid ground, at %s" % player.global_position)
-		# Spawned at column 3, row 12, so his feet belong on the row 13 surface.
-		_check(absf(player.global_position.y - 13 * TILE) < 2.0,
-			"player feet at y=%.1f, expected %d" % [player.global_position.y, 13 * TILE])
-
-	# The slab must rest on the ground rather than sink into it: its origin is
-	# at its footing, and the body sits one tile above that.
-	if kinds.has("focus_stone.gd"):
-		var slab: Node2D = kinds["focus_stone.gd"]
-		var body: AnimatableBody2D = slab.get_node("Body")
-		_check(absf(body.global_position.y - (13 * TILE - 16)) < 2.0,
-			"slab body centred at y=%.1f" % body.global_position.y)
+		# Spawned at column 3, row 18, so his feet belong on the row 19 surface.
+		_check(absf(player.global_position.y - 19 * TILE) < 2.0,
+			"player feet at y=%.1f, expected %d" % [player.global_position.y, 19 * TILE])
 
 	var camera: Camera2D = player.get_node("Camera2D")
 	_check(camera.limit_right > 3000, "camera framed to the map, right=%d" % camera.limit_right)
@@ -75,11 +70,11 @@ func _physics_process(_delta: float) -> bool:
 	print("")
 	if _failures.is_empty():
 		print("level check passed")
-		quit(0)
+		_finish(0)
 	else:
 		print("level check FAILED (%d)" % _failures.size())
-		quit(1)
-	return true
+		_finish(1)
+	return false
 
 
 func _check(condition: bool, message: String) -> void:
@@ -88,3 +83,8 @@ func _check(condition: bool, message: String) -> void:
 	else:
 		_failures.append(message)
 		print("  FAIL  %s" % message)
+
+func _finish(code := 0) -> void:
+	if _finishing: return
+	_finishing = true
+	preload("res://tools/test_cleanup.gd").finish(self, code)
