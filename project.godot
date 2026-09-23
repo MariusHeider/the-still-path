@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="The Still Path"
+config/name="Sthira"
 run/main_scene="res://Scenes/title.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
