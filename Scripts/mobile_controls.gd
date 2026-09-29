@@ -1,6 +1,7 @@
 extends Node2D
 
 var _interact_label: Label = null
+var _readout: Label = null
 var _level: Node = null
 
 
@@ -20,6 +21,7 @@ func _ready() -> void:
 	visible = touch_available
 	_level = get_parent().get_parent()
 	_interact_label = get_node_or_null("Interact/Label") as Label
+	_readout = get_parent().get_node_or_null("Readout") as Label
 
 	# Parent visibility decides whether controls are shown. Keep each button
 	# itself on ALWAYS so Safari cannot hide it through touchscreen-only mode.
@@ -28,12 +30,14 @@ func _ready() -> void:
 			child.visibility_mode = TouchScreenButton.VISIBILITY_ALWAYS
 
 	_update_interact_label()
+	_update_mobile_readout()
 
 
 func _process(_delta: float) -> void:
 	if not visible:
 		return
 	_update_interact_label()
+	_update_mobile_readout()
 
 
 func _update_interact_label() -> void:
@@ -57,3 +61,15 @@ func _update_interact_label() -> void:
 		should_act = player.current_interactable() != null
 
 	_interact_label.text = "ACT" if should_act else "SIT"
+
+
+func _update_mobile_readout() -> void:
+	if _readout == null:
+		return
+
+	# The level keeps its desktop wording as the source of truth. On touch
+	# devices this final presentation layer swaps only the control vocabulary.
+	if _readout.text.begins_with("E to "):
+		_readout.text = "ACT" + _readout.text.substr(1)
+	elif _readout.text == "WASD moves your attention":
+		_readout.text = "< > move your attention"
