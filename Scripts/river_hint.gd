@@ -8,10 +8,11 @@ const RIVER_PROXIMITY_Y := 160.0
 
 var _water_attempts := 0
 var _seated_seconds := 0.0
-var _hint_shown := false
+var _seat_hint_shown_for_current_sit := false
 var _level: Node = null
 var _hazard: Area2D = null
 var _message: Label = null
+var _message_tween: Tween = null
 
 
 func _ready() -> void:
@@ -31,25 +32,35 @@ func _bind_level() -> void:
 
 
 func _process(delta: float) -> void:
-	if _hint_shown or _level == null:
+	if _level == null:
 		return
 	var player = _level.get("player")
 	if player == null:
 		return
+
+	# Once the chick has been returned to the nest, this hint is permanently
+	# irrelevant and no further attempts are counted.
 	if bool(_level.get("_chick_rescued")):
+		_water_attempts = 0
 		_seated_seconds = 0.0
+		_seat_hint_shown_for_current_sit = false
 		return
 
 	if player.is_seated and _is_near_left_bank(player.global_position):
-		_seated_seconds += delta
-		if _seated_seconds >= SEATED_SECONDS_BEFORE_HINT:
-			_show_hint()
+		if not _seat_hint_shown_for_current_sit:
+			_seated_seconds += delta
+			if _seated_seconds >= SEATED_SECONDS_BEFORE_HINT:
+				_seat_hint_shown_for_current_sit = true
+				_show_hint()
 	else:
+		# Standing up resets the sitting hint. A later sit starts a fresh
+		# ten-second wait, but the hint never repeats while one sit continues.
 		_seated_seconds = 0.0
+		_seat_hint_shown_for_current_sit = false
 
 
 func _on_river_entered(body: Node2D) -> void:
-	if _hint_shown or _level == null:
+	if _level == null:
 		return
 	var player = _level.get("player")
 	if player == null or body != player:
@@ -59,6 +70,7 @@ func _on_river_entered(body: Node2D) -> void:
 
 	_water_attempts += 1
 	if _water_attempts >= WATER_ATTEMPTS_BEFORE_HINT:
+		_water_attempts = 0
 		_show_hint()
 
 
@@ -72,12 +84,13 @@ func _is_near_left_bank(position: Vector2) -> bool:
 
 
 func _show_hint() -> void:
-	if _hint_shown or _message == null:
+	if _message == null:
 		return
-	_hint_shown = true
+	if _message_tween != null and _message_tween.is_valid():
+		_message_tween.kill()
 	_message.text = MESSAGE
 	_message.modulate.a = 0.0
-	var tween := create_tween()
-	tween.tween_property(_message, "modulate:a", 1.0, 0.6)
-	tween.tween_interval(3.2)
-	tween.tween_property(_message, "modulate:a", 0.0, 0.7)
+	_message_tween = create_tween()
+	_message_tween.tween_property(_message, "modulate:a", 1.0, 0.6)
+	_message_tween.tween_interval(3.2)
+	_message_tween.tween_property(_message, "modulate:a", 0.0, 0.7)
