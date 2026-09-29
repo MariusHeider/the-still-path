@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://baxbd1bowgpcq" path="res://Scripts/river_ambience.gd" id="5_stream"]
 [ext_resource type="PackedScene" path="res://Scenes/world_background.tscn" id="6_background"]
 [ext_resource type="Script" uid="uid://ddqqmtmx7rk8d" path="res://Scripts/mobile_controls.gd" id="7_mobile"]
+[ext_resource type="Script" path="res://Scripts/river_hint.gd" id="8_river_hint"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_mobile"]
 size = Vector2(56, 40)
@@ -41,6 +42,9 @@ script = ExtResource("5_stream")
 collision_layer = 0
 collision_mask = 2
 monitorable = false
+
+[node name="RiverHint" type="Node" parent="."]
+script = ExtResource("8_river_hint")
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1020136114]
 
