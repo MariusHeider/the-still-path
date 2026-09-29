@@ -51,10 +51,10 @@ func _update_interact_label() -> void:
 
 	var should_act := false
 
-	# While seated, the same button either stands up or commits the awareness
-	# interaction/teleport, so SIT would be misleading.
+	# Sitting normally keeps the familiar SIT label. Only in a projection zone
+	# does the seated state become an active awareness/teleport interaction.
 	if player.is_seated:
-		should_act = true
+		should_act = player.can_project
 	elif player.riding != null:
 		should_act = player.riding.can_interact(player)
 	else:
