@@ -3,42 +3,58 @@ extends Node
 const MESSAGE := "Perhaps the way forward begins with something left behind."
 const WATER_ATTEMPTS_BEFORE_HINT := 3
 const SEATED_SECONDS_BEFORE_HINT := 10.0
-const RIVER_PROXIMITY_X := 192.0
-const RIVER_PROXIMITY_Y := 128.0
+const RIVER_PROXIMITY_X := 224.0
+const RIVER_PROXIMITY_Y := 160.0
 
 var _water_attempts := 0
 var _seated_seconds := 0.0
 var _hint_shown := false
-
-@onready var _level: LevelMap = get_parent() as LevelMap
-@onready var _hazard: Area2D = _level.get_node("Hazard")
+var _level: Node = null
+var _hazard: Area2D = null
+var _message: Label = null
 
 
 func _ready() -> void:
-	_hazard.body_entered.connect(_on_river_entered)
+	# Child _ready() runs before the Level's _ready(), so defer setup until the
+	# level has built the river and spawned the player.
+	call_deferred("_bind_level")
+
+
+func _bind_level() -> void:
+	_level = get_parent()
+	if _level == null:
+		return
+	_hazard = _level.get_node_or_null("Hazard") as Area2D
+	_message = _level.get_node_or_null("HUD/Message") as Label
+	if _hazard != null and not _hazard.body_entered.is_connected(_on_river_entered):
+		_hazard.body_entered.connect(_on_river_entered)
 
 
 func _process(delta: float) -> void:
-	if _hint_shown or _level == null or _level.player == null:
+	if _hint_shown or _level == null:
 		return
-	if _level._chick_rescued or _level.active_river_bank != 0:
+	var player = _level.get("player")
+	if player == null:
+		return
+	if bool(_level.get("_chick_rescued")):
 		_seated_seconds = 0.0
 		return
 
-	var player := _level.player
-	if not player.is_seated or not _is_near_left_bank(player.global_position):
+	if player.is_seated and _is_near_left_bank(player.global_position):
+		_seated_seconds += delta
+		if _seated_seconds >= SEATED_SECONDS_BEFORE_HINT:
+			_show_hint()
+	else:
 		_seated_seconds = 0.0
-		return
-
-	_seated_seconds += delta
-	if _seated_seconds >= SEATED_SECONDS_BEFORE_HINT:
-		_show_hint()
 
 
 func _on_river_entered(body: Node2D) -> void:
-	if _hint_shown or not (body is Seeker):
+	if _hint_shown or _level == null:
 		return
-	if _level._chick_rescued or _level.active_river_bank != 0:
+	var player = _level.get("player")
+	if player == null or body != player:
+		return
+	if bool(_level.get("_chick_rescued")):
 		return
 
 	_water_attempts += 1
@@ -47,13 +63,21 @@ func _on_river_entered(body: Node2D) -> void:
 
 
 func _is_near_left_bank(position: Vector2) -> bool:
-	var bank := _level.to_global(_level.river_checkpoints[0])
+	var checkpoints = _level.get("river_checkpoints")
+	if checkpoints == null or checkpoints.size() < 1:
+		return false
+	var bank: Vector2 = _level.to_global(checkpoints[0])
 	return absf(position.x - bank.x) <= RIVER_PROXIMITY_X \
 		and absf(position.y - bank.y) <= RIVER_PROXIMITY_Y
 
 
 func _show_hint() -> void:
-	if _hint_shown:
+	if _hint_shown or _message == null:
 		return
 	_hint_shown = true
-	_level._show_lines([MESSAGE], 0.0)
+	_message.text = MESSAGE
+	_message.modulate.a = 0.0
+	var tween := create_tween()
+	tween.tween_property(_message, "modulate:a", 1.0, 0.6)
+	tween.tween_interval(3.2)
+	tween.tween_property(_message, "modulate:a", 0.0, 0.7)
