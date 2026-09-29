@@ -4,6 +4,7 @@ const LEVEL := "res://Scenes/level.tscn"
 enum Stage { TITLE, CONTROLS, PREMISE, INVOLVEMENT, PRINCIPLE }
 var stage := Stage.TITLE
 var _transitioning := false
+var _touch_available := false
 @export var menu_volume_db := -22.0
 @onready var menu_music := AudioStreamPlayer.new()
 
@@ -11,6 +12,17 @@ func _exit_tree() -> void:
 	menu_music.stop()
 
 func _ready() -> void:
+	_touch_available = DisplayServer.is_touchscreen_available()
+	if OS.has_feature("web"):
+		var browser_touch = JavaScriptBridge.eval(
+			"(('ontouchstart' in window) || (navigator.maxTouchPoints > 0))",
+			true
+		)
+		if browser_touch is bool:
+			_touch_available = _touch_available or browser_touch
+
+	_apply_device_text()
+
 	menu_music.name = "MenuMusic"
 	menu_music.stream = Sound.stream(Sound.MENU, true)
 	menu_music.volume_db = menu_volume_db
@@ -18,12 +30,26 @@ func _ready() -> void:
 	menu_music.play()
 
 
+func _apply_device_text() -> void:
+	if not _touch_available:
+		return
+
+	$TitleStage/Prompt.text = "Tap to continue"
+	$ControlsStage/Table/Keys/Row0.text = "<"
+	$ControlsStage/Table/Keys/Row1.text = ">"
+	$ControlsStage/Table/Keys/Row2.text = "JUMP"
+	$ControlsStage/Table/Keys/Row3.text = "SIT / ACT"
+	$ControlsStage/Prompt.text = "Tap to continue"
+	$PremiseStage/Prompt.text = "Tap to continue"
+	$InvolvementStage/Prompt.text = "Tap to continue"
+
 
 func _input(event: InputEvent) -> void:
 	if _transitioning or stage == Stage.PRINCIPLE:
 		return
 	var pressed := event is InputEventKey and event.is_pressed() and not event.is_echo()
 	pressed = pressed or (event is InputEventMouseButton and event.is_pressed())
+	pressed = pressed or (event is InputEventScreenTouch and event.is_pressed())
 	pressed = pressed or (event is InputEventJoypadButton and event.is_pressed())
 	if not pressed:
 		return
